@@ -1,0 +1,1744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Hiring Room — App</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#e9e3d2; --paper-deep:#ded5ba; --paper-card:#f2ede0;
+    --ink:#1c1a16; --ink-soft:#5b5648;
+    --line:#b6ac8e;
+    --stamp:#a3402c; --stamp-deep:#7c2f21;
+    --verify:#2c6459; --verify-deep:#1e4a41;
+    --gold:#8a6d1f;
+    --shadow: rgba(28,26,22,0.16);
+  }
+  *{ box-sizing:border-box; }
+  html{ scroll-behavior:smooth; }
+  body{
+    margin:0; min-height:100vh;
+    background:var(--paper);
+    background-image:
+      repeating-linear-gradient(rgba(28,26,22,0.035) 0px, rgba(28,26,22,0.035) 1px, transparent 1px, transparent 34px),
+      radial-gradient(ellipse at 12% 6%, rgba(28,26,22,0.04), transparent 45%),
+      radial-gradient(ellipse at 88% 94%, rgba(28,26,22,0.035), transparent 45%);
+    color:var(--ink);
+    font-family:'IBM Plex Sans', sans-serif;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3{ font-family:'Fraunces', serif; margin:0; letter-spacing:-0.01em; }
+  .mono{ font-family:'IBM Plex Mono', monospace; }
+  button{ font-family:inherit; cursor:pointer; }
+  input{ font-family:'IBM Plex Sans', sans-serif; }
+  a{ color:inherit; text-decoration:none; }
+
+  /* ===== HEADER ===== */
+  .site-header{
+    position:sticky; top:0; z-index:90;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:14px 26px;
+    background:rgba(233,227,210,0.92);
+    backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--line);
+    flex-wrap:wrap; gap:10px;
+  }
+  .brand-block{ display:flex; align-items:baseline; gap:10px; cursor:pointer; }
+  .brand-block .brand{ font-family:'Fraunces', serif; font-weight:600; font-size:16px; letter-spacing:-0.01em; }
+  .brand-block .brand span{ color:var(--stamp); }
+  .brand-block .case{ font-family:'IBM Plex Mono', monospace; font-size:10.5px; color:var(--ink-soft); letter-spacing:0.08em; }
+
+  .main-nav{ display:flex; align-items:center; gap:4px; flex-wrap:wrap; }
+  .nav-link{
+    font-family:'IBM Plex Mono', monospace; font-size:11.5px; letter-spacing:0.05em; text-transform:uppercase;
+    color:var(--ink-soft); background:none; border:none; padding:8px 12px; border-radius:6px;
+    transition:background 0.2s, color 0.2s;
+  }
+  .nav-link:hover{ background:var(--paper-deep); color:var(--ink); }
+  .nav-link.on{ color:var(--ink); background:var(--paper-deep); }
+
+  .header-right{ display:flex; align-items:center; gap:10px; }
+  .pill-btn{
+    font-family:'IBM Plex Mono', monospace; font-size:11.5px; letter-spacing:0.05em;
+    border:1px solid var(--ink); background:transparent; color:var(--ink);
+    padding:7px 14px; border-radius:999px;
+    transition:transform 0.18s cubic-bezier(.2,.8,.3,1), background 0.18s, color 0.18s;
+  }
+  .pill-btn:hover{ background:var(--ink); color:var(--paper); transform:translateY(-2px); }
+  .pill-btn.ghost{ border-color:var(--line); color:var(--ink-soft); }
+  .diff-opt.on{ background:var(--ink); color:var(--paper); }
+
+  /* ===== view container ===== */
+  .app-shell{ min-height:70vh; }
+  .view{ display:none; padding:34px 24px 70px; max-width:1000px; margin:0 auto; }
+  .view.active{ display:block; }
+  .view.enter{ animation:viewIn 0.45s cubic-bezier(.25,.7,.35,1) both; }
+  @keyframes viewIn{ from{ opacity:0; transform:translateY(14px);} to{ opacity:1; transform:translateY(0);} }
+  @media (prefers-reduced-motion: reduce){ .view.enter{ animation:none; } }
+
+  .stagger > *{ opacity:0; transform:translateY(12px); animation:staggerIn 0.5s cubic-bezier(.25,.7,.35,1) forwards; }
+  @keyframes staggerIn{ to{ opacity:1; transform:translateY(0); } }
+  @media (prefers-reduced-motion: reduce){ .stagger > *{ opacity:1; transform:none; animation:none; } }
+
+  /* scroll reveal (for long scrolling views like landing/dashboard) */
+  .reveal{ opacity:0; transform:translateY(20px); transition:opacity 0.7s cubic-bezier(.2,.7,.3,1), transform 0.7s cubic-bezier(.2,.7,.3,1); }
+  .reveal.in{ opacity:1; transform:translateY(0); }
+  @media (prefers-reduced-motion: reduce){ .reveal{ opacity:1; transform:none; transition:none; } }
+
+  .card{ background:var(--paper-card); border:1px solid var(--line); border-radius:6px; }
+
+  .section-label{ font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:var(--ink-soft); margin-bottom:12px; }
+  .exhibit-tab{ display:flex; align-items:center; gap:14px; margin:52px 0 26px; }
+  .exhibit-tab .tag{ font-family:'IBM Plex Mono', monospace; font-size:11px; font-weight:600; letter-spacing:0.12em; text-transform:uppercase; color:var(--paper); background:var(--ink); padding:5px 11px 4px; border-radius:2px 2px 0 0; white-space:nowrap; }
+  .exhibit-tab .rule{ flex:1; height:2px; background:var(--ink); }
+
+  /* ===== LANDING ===== */
+  .hero{ text-align:center; padding:36px 0 20px; }
+  .stamp-badge{
+    display:inline-flex; align-items:center; gap:2px; border:2.5px solid var(--stamp); color:var(--stamp);
+    border-radius:6px; padding:8px 18px 7px; font-family:'IBM Plex Mono', monospace; font-size:11.5px; font-weight:600;
+    letter-spacing:0.14em; text-transform:uppercase; transform:rotate(-4deg);
+  }
+  .hero h1{ font-size:clamp(38px,7vw,68px); font-weight:700; margin:20px 0 8px; }
+  .hero .sub{ font-family:'Fraunces', serif; font-style:italic; font-weight:500; font-size:clamp(16px,2.4vw,21px); color:var(--ink-soft); margin-bottom:22px; }
+  .hero-ctas{ display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-top:8px; }
+  .cta-btn{
+    background:var(--stamp); color:var(--paper); border:none; padding:13px 24px; border-radius:6px;
+    font-family:'IBM Plex Mono', monospace; font-size:12.5px; letter-spacing:0.06em; text-transform:uppercase;
+    transition:transform 0.18s cubic-bezier(.2,.8,.3,1), background 0.18s;
+  }
+  .cta-btn:hover{ transform:translateY(-3px); background:var(--stamp-deep); }
+  .cta-btn:active{ transform:translateY(0) scale(0.97); }
+  .cta-btn:disabled{ opacity:0.5; cursor:not-allowed; transform:none; }
+
+  .lede{ font-family:'Fraunces', serif; font-size:clamp(19px,2.6vw,25px); font-weight:500; line-height:1.4; max-width:720px; margin-bottom:26px; }
+  .lede em{ color:var(--stamp); font-style:normal; }
+
+  .compare{ display:grid; grid-template-columns:1fr 1fr; gap:24px; }
+  @media (max-width:720px){ .compare{ grid-template-columns:1fr; } }
+  .doc{ background:var(--paper); border:1.5px solid var(--ink); border-radius:3px; padding:22px 22px; box-shadow:5px 5px 0 var(--shadow); }
+  .doc.today{ opacity:0.85; }
+  .doc .doc-head{ font-family:'IBM Plex Mono', monospace; font-size:10.5px; letter-spacing:0.12em; text-transform:uppercase; color:var(--ink-soft); border-bottom:1px dashed var(--line); padding-bottom:9px; margin-bottom:13px; }
+  .doc h3{ font-size:19px; margin-bottom:10px; }
+  .doc ul{ margin:0; padding-left:18px; }
+  .doc li{ margin-bottom:7px; }
+  .doc.panel{ border-color:var(--verify); }
+  .doc.panel .doc-head{ color:var(--verify-deep); }
+
+  /* landing chart */
+  .chart-card{ padding:26px 26px 20px; }
+  .chart-head{ display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:8px; margin-bottom:6px; }
+  .chart-head h3{ font-size:19px; }
+  .chart-note{ font-family:'IBM Plex Mono', monospace; font-size:10.5px; color:var(--ink-soft); }
+  .chart-caption{ font-size:13px; color:var(--ink-soft); margin-top:10px; }
+  .chart-legend{ display:flex; gap:16px; margin-top:12px; flex-wrap:wrap; }
+  .chart-legend span{ font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--ink-soft); display:flex; align-items:center; gap:6px; }
+  .chart-legend .sw{ width:10px; height:10px; border-radius:2px; display:inline-block; }
+
+  .bento{ display:grid; grid-template-columns:repeat(6,1fr); gap:16px; }
+  .bento .card{ padding:20px; transition:transform 0.35s cubic-bezier(.2,.8,.3,1), box-shadow 0.35s, border-color 0.35s; }
+  .bento .card:hover{ transform:translateY(-4px); box-shadow:0 12px 24px rgba(28,26,22,0.14); border-color:var(--ink); }
+  .bento .card h4{ font-family:'Fraunces', serif; font-size:17px; margin-bottom:6px; }
+  .bento .card p{ margin:0; font-size:13.5px; color:var(--ink-soft); }
+  .bento .num{ font-family:'IBM Plex Mono', monospace; font-size:10.5px; color:var(--stamp); margin-bottom:8px; letter-spacing:0.1em; }
+  .f1{ grid-column:span 3; } .f2{ grid-column:span 3; } .f3{ grid-column:span 2; } .f4{ grid-column:span 2; } .f5{ grid-column:span 2; }
+  @media (max-width:820px){ .bento{ grid-template-columns:1fr 1fr; } .f1,.f2{ grid-column:span 2; } .f3,.f4,.f5{ grid-column:span 1; } }
+  @media (max-width:560px){ .bento{ grid-template-columns:1fr; } .bento > div{ grid-column:span 1 !important; } }
+
+  /* ===== AUTH ===== */
+  .auth-wrap{ display:flex; justify-content:center; padding-top:26px; }
+  .auth-card{ width:100%; max-width:400px; background:var(--paper-card); border:1.5px solid var(--ink); border-radius:8px; padding:30px 30px 26px; box-shadow:6px 6px 0 var(--shadow); }
+  .auth-tabs{ display:flex; gap:0; margin-bottom:20px; border-bottom:1px solid var(--line); }
+  .auth-tab{ flex:1; text-align:center; padding:9px 0 12px; font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:var(--ink-soft); background:none; border:none; border-bottom:2px solid transparent; transition:color 0.2s, border-color 0.2s; }
+  .auth-tab.active{ color:var(--ink); border-color:var(--stamp); }
+
+  .oauth-row{ display:flex; flex-direction:column; gap:9px; margin-bottom:18px; }
+  .oauth-btn{
+    display:flex; align-items:center; justify-content:center; gap:9px; padding:10px 14px; border-radius:6px;
+    border:1.5px solid var(--line); background:var(--paper); font-family:'IBM Plex Sans', sans-serif; font-size:13.5px; font-weight:500;
+    transition:transform 0.18s cubic-bezier(.2,.8,.3,1), border-color 0.18s, background 0.18s;
+  }
+  .oauth-btn:hover{ transform:translateY(-2px); border-color:var(--ink); background:var(--paper-deep); }
+  .oauth-mark{ width:18px; height:18px; border-radius:4px; display:inline-flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono', monospace; font-size:10.5px; font-weight:700; color:#fff; flex-shrink:0; }
+  .oauth-mark.google{ background:linear-gradient(135deg,#4285F4,#34A853 50%,#FBBC05 75%,#EA4335); }
+  .oauth-mark.linkedin{ background:#0a66c2; }
+
+  .divider{ display:flex; align-items:center; gap:10px; margin:6px 0 18px; }
+  .divider .ln{ flex:1; height:1px; background:var(--line); }
+  .divider span{ font-family:'IBM Plex Mono', monospace; font-size:10px; text-transform:uppercase; letter-spacing:0.08em; color:var(--ink-soft); }
+
+  .field{ margin-bottom:16px; }
+  .field label{ display:block; font-family:'IBM Plex Mono', monospace; font-size:10.5px; letter-spacing:0.1em; text-transform:uppercase; color:var(--ink-soft); margin-bottom:6px; }
+  .field input{ width:100%; padding:10px 0; border:none; border-bottom:1.5px solid var(--line); background:transparent; font-size:15px; color:var(--ink); outline:none; transition:border-color 0.2s; }
+  .field input:focus{ border-color:var(--stamp); }
+  .auth-submit{ width:100%; margin-top:8px; padding:12px; background:var(--ink); color:var(--paper); border:none; border-radius:5px; font-family:'IBM Plex Mono', monospace; font-size:12.5px; letter-spacing:0.08em; text-transform:uppercase; transition:transform 0.18s cubic-bezier(.2,.8,.3,1), background 0.18s; }
+  .auth-submit:hover{ transform:translateY(-2px); background:var(--stamp-deep); }
+  .auth-submit:active{ transform:translateY(0) scale(0.98); }
+  .auth-note{ text-align:center; margin-top:14px; font-size:12px; color:var(--ink-soft); }
+  .auth-error{ display:none; text-align:center; margin-top:14px; font-family:'IBM Plex Mono', monospace; font-size:11.5px; color:var(--stamp-deep); }
+  .auth-error.show{ display:block; }
+  .verify-flash{ display:none; align-items:center; gap:8px; justify-content:center; font-family:'IBM Plex Mono', monospace; font-size:11.5px; color:var(--verify-deep); margin-top:14px; letter-spacing:0.06em; }
+  .verify-flash.show{ display:flex; animation:staggerIn 0.35s ease both; }
+  .verify-flash .dot{ width:6px; height:6px; border-radius:50%; background:var(--verify); animation:blink 1s infinite; }
+  @keyframes blink{ 0%,100%{opacity:1;} 50%{opacity:0.25;} }
+
+  /* ===== DASHBOARD ===== */
+  .dash-head{ display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:14px; margin-bottom:26px; }
+  .dash-head h2{ font-size:28px; }
+  .stat-row{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:34px; }
+  @media (max-width:640px){ .stat-row{ grid-template-columns:1fr; } }
+  .stat-card{ padding:20px 22px; }
+  .stat-card .label{ font-family:'IBM Plex Mono', monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:0.1em; color:var(--ink-soft); margin-bottom:10px; }
+  .stat-card .value{ font-family:'Fraunces', serif; font-size:34px; font-weight:600; }
+  .stat-card .value.gold{ color:var(--gold); }
+  .stat-card .value.verify{ color:var(--verify-deep); }
+
+  .session-row{ display:flex; align-items:center; justify-content:space-between; gap:14px; padding:15px 18px; margin-bottom:10px; transition:transform 0.25s cubic-bezier(.2,.8,.3,1), box-shadow 0.25s; }
+  .session-row:hover{ transform:translateX(4px); box-shadow:4px 4px 0 var(--shadow); }
+  .session-row .meta{ font-family:'IBM Plex Mono', monospace; font-size:11.5px; color:var(--ink-soft); }
+  .verdict-chip{ font-family:'IBM Plex Mono', monospace; font-size:10.5px; letter-spacing:0.06em; text-transform:uppercase; padding:4px 10px; border-radius:999px; white-space:nowrap; }
+  .verdict-chip.strong{ background:rgba(44,100,89,0.14); color:var(--verify-deep); }
+  .verdict-chip.lean{ background:rgba(138,109,31,0.16); color:var(--gold); }
+  .verdict-chip.discuss{ background:rgba(163,64,44,0.14); color:var(--stamp-deep); }
+
+  .empty-note{ font-family:'IBM Plex Mono', monospace; font-size:12px; color:var(--ink-soft); padding:14px 4px; }
+
+  .cta-row{ margin-top:26px; }
+
+  /* ===== UPLOAD ===== */
+  .field-block{ margin-bottom:20px; }
+  .field-block label{ display:block; font-family:'IBM Plex Mono', monospace; font-size:10.5px; letter-spacing:0.1em; text-transform:uppercase; color:var(--ink-soft); margin-bottom:8px; }
+  .field-block textarea{ width:100%; min-height:110px; padding:12px 14px; border:1.5px solid var(--line); border-radius:6px; background:var(--paper-card); font-family:'IBM Plex Sans', sans-serif; font-size:13.5px; color:var(--ink); resize:vertical; }
+  .dropzone{ border:2px dashed var(--line); border-radius:8px; padding:54px 24px; text-align:center; transition:transform 0.25s cubic-bezier(.2,.8,.3,1), border-color 0.25s, background 0.25s; }
+  .dropzone.drag{ transform:scale(1.015); border-color:var(--stamp); background:rgba(163,64,44,0.05); }
+  .dropzone p{ margin:6px 0 0; color:var(--ink-soft); font-size:13.5px; }
+  .dropzone .dz-icon{ font-family:'Fraunces', serif; font-size:34px; color:var(--ink-soft); }
+  .file-chip{ display:none; align-items:center; gap:10px; margin-top:18px; padding:10px 16px; background:var(--paper-card); border:1px solid var(--line); border-radius:6px; max-width:340px; margin-left:auto; margin-right:auto; }
+  .file-chip.show{ display:flex; animation:chipIn 0.4s cubic-bezier(.2,.85,.3,1.2) both; }
+  @keyframes chipIn{ from{ opacity:0; transform:scale(0.85);} 70%{ opacity:1; transform:scale(1.04);} to{ transform:scale(1);} }
+  .file-chip .dot{ width:8px; height:8px; border-radius:50%; background:var(--verify); flex-shrink:0; }
+  .file-chip .name{ font-size:13px; font-family:'IBM Plex Mono', monospace; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .progress-wrap{ margin-top:20px; display:none; }
+  .progress-wrap.show{ display:block; }
+  .progress-label{ font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--ink-soft); margin-bottom:6px; }
+  .progress-bar{ height:6px; background:var(--paper-deep); border-radius:99px; overflow:hidden; }
+  .progress-fill{ height:100%; width:0%; background:var(--verify); border-radius:99px; transition:width 0.5s cubic-bezier(.3,.6,.3,1); }
+  .match-card{ display:none; margin-top:22px; padding:20px; }
+  .match-card.show{ display:block; animation:staggerIn 0.5s cubic-bezier(.25,.7,.35,1) both; }
+  .match-card .row{ display:flex; justify-content:space-between; gap:14px; padding:8px 0; border-bottom:1px dashed var(--line); font-size:14px; }
+  .match-card .row:last-child{ border-bottom:none; }
+  .match-card ul{ margin:4px 0 0; padding-left:18px; font-size:13px; }
+
+  /* ===== INTERVIEW ===== */
+  .role-field{ max-width:360px; margin-bottom:22px; }
+  .persona-strip{ display:flex; gap:12px; margin-bottom:26px; flex-wrap:wrap; }
+  .persona-pill{ flex:1; min-width:150px; padding:14px 16px; border-radius:6px; border:1.5px solid var(--line); transition:border-color 0.3s, background 0.3s, transform 0.3s; }
+  .persona-pill .role{ font-family:'IBM Plex Mono', monospace; font-size:10px; text-transform:uppercase; letter-spacing:0.08em; color:var(--ink-soft); }
+  .persona-pill .who{ font-family:'Fraunces', serif; font-size:16px; margin-top:2px; }
+  .persona-pill.active{ border-color:var(--stamp); background:rgba(163,64,44,0.06); transform:translateY(-3px); }
+  .interview-stage{ text-align:center; padding:30px 10px 10px; }
+  .mic-wrap{ position:relative; display:inline-flex; align-items:center; justify-content:center; margin-bottom:20px; }
+  .mic-ring{ position:absolute; width:96px; height:96px; border-radius:50%; border:1.5px solid var(--stamp); opacity:0; }
+  .mic-ring.pulse{ animation:ringPulse 1.8s ease-out infinite; }
+  @keyframes ringPulse{ 0%{ opacity:0.5; transform:scale(0.8);} 100%{ opacity:0; transform:scale(1.5);} }
+  .mic-btn{ width:76px; height:76px; border-radius:50%; border:none; background:var(--ink); color:var(--paper); font-size:26px; display:flex; align-items:center; justify-content:center; position:relative; z-index:2; transition:transform 0.2s cubic-bezier(.2,.8,.3,1), background 0.3s; }
+  .mic-btn.listening{ background:var(--stamp); animation:micBreathe 1.6s ease-in-out infinite; }
+  @keyframes micBreathe{ 0%,100%{ transform:scale(1);} 50%{ transform:scale(1.06);} }
+  .mic-btn:active{ transform:scale(0.94); }
+  .mic-btn:disabled{ opacity:0.4; cursor:not-allowed; }
+  .mic-status{ font-family:'IBM Plex Mono', monospace; font-size:11.5px; color:var(--ink-soft); letter-spacing:0.06em; }
+  .question-box{ margin:26px auto 0; max-width:560px; padding:20px 22px; text-align:left; }
+  .question-box .q-label{ font-family:'IBM Plex Mono', monospace; font-size:10.5px; text-transform:uppercase; color:var(--ink-soft); letter-spacing:0.08em; margin-bottom:8px; }
+  .question-box .q-text{ font-family:'Fraunces', serif; font-style:italic; font-size:19px; }
+  .caption{ margin-top:14px; min-height:44px; font-size:14.5px; color:var(--ink-soft); text-align:left; padding:0 22px; }
+  .caption .cursor{ display:inline-block; width:2px; height:14px; background:var(--ink-soft); margin-left:2px; animation:blink 0.9s steps(1) infinite; vertical-align:middle; }
+  .interview-actions{ display:flex; gap:10px; justify-content:center; margin-top:26px; flex-wrap:wrap; }
+  .signal-note{ margin-top:10px; font-family:'IBM Plex Mono', monospace; font-size:10.5px; color:var(--ink-soft); text-align:center; }
+  .selfview-wrap{ max-width:280px; margin:20px auto 0; }
+  .selfview-toggle{ font-family:'IBM Plex Mono', monospace; font-size:10.5px; letter-spacing:0.06em; text-transform:uppercase; background:none; border:1px solid var(--line); color:var(--ink-soft); padding:6px 12px; border-radius:999px; transition:border-color 0.2s, color 0.2s; }
+  .selfview-toggle:hover{ border-color:var(--ink); color:var(--ink); }
+  .selfview-box{ display:none; position:relative; margin-top:12px; border:1.5px solid var(--line); border-radius:8px; overflow:hidden; background:#000; }
+  .selfview-box.show{ display:block; }
+  .selfview-box video, .selfview-box canvas{ width:100%; display:block; transform:scaleX(-1); }
+  .selfview-box canvas{ position:absolute; top:0; left:0; }
+  .selfview-readout{ margin-top:8px; font-family:'IBM Plex Mono', monospace; font-size:10.5px; color:var(--ink-soft); text-align:center; }
+
+  /* ===== RESULTS ===== */
+  .verdict-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:30px; }
+  @media (max-width:680px){ .verdict-grid{ grid-template-columns:1fr; } }
+  .verdict-card{ padding:20px; position:relative; overflow:hidden; }
+  .verdict-card .role{ font-family:'IBM Plex Mono', monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:0.08em; color:var(--ink-soft); }
+  .verdict-card .stamp-word{ font-family:'IBM Plex Mono', monospace; font-weight:600; font-size:15px; letter-spacing:0.06em; text-transform:uppercase; display:inline-block; margin-top:10px; padding:5px 12px; border-radius:4px; border:2px solid; transform:rotate(-3deg); }
+  .verdict-card.strong .stamp-word{ color:var(--verify-deep); border-color:var(--verify); }
+  .verdict-card.lean .stamp-word{ color:var(--gold); border-color:var(--gold); }
+  .verdict-card.discuss .stamp-word{ color:var(--stamp-deep); border-color:var(--stamp); }
+  .verdict-card p{ margin:14px 0 0; font-size:13.5px; color:var(--ink-soft); }
+  .verdict-card .quote-flag{ display:inline-block; margin-top:8px; font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:0.05em; text-transform:uppercase; padding:2px 8px; border-radius:3px; }
+  .verdict-card .quote-flag.ok{ background:rgba(44,100,89,0.14); color:var(--verify-deep); }
+  .verdict-card .quote-flag.bad{ background:rgba(163,64,44,0.14); color:var(--stamp-deep); }
+  .transcript{ background:var(--ink); color:var(--paper); border-radius:6px; padding:26px 24px; margin-bottom:26px; white-space:pre-wrap; font-family:'IBM Plex Mono', monospace; font-size:13px; line-height:1.7; }
+
+  /* ===== FOOTER ===== */
+  .site-footer{ border-top:1.5px solid var(--ink); background:var(--paper-deep); padding:40px 26px 100px; }
+  .footer-wrap{ max-width:1000px; margin:0 auto; display:grid; grid-template-columns:1.4fr 1fr 1fr; gap:30px; }
+  @media (max-width:680px){ .footer-wrap{ grid-template-columns:1fr; gap:24px; } }
+  .footer-wrap h5{ font-family:'IBM Plex Mono', monospace; font-size:10.5px; letter-spacing:0.1em; text-transform:uppercase; color:var(--ink-soft); margin-bottom:12px; }
+  .footer-wrap .brand{ font-family:'Fraunces', serif; font-weight:600; font-size:18px; margin-bottom:8px; }
+  .footer-wrap .brand span{ color:var(--stamp); }
+  .footer-wrap p{ font-size:13px; color:var(--ink-soft); margin:0; max-width:280px; }
+  .footer-links a{ display:block; font-size:13.5px; color:var(--ink); padding:5px 0; transition:color 0.2s; }
+  .footer-links a:hover{ color:var(--stamp); }
+  .footer-bottom{ max-width:1000px; margin:26px auto 0; padding-top:18px; border-top:1px dashed var(--line); font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--ink-soft); display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; }
+
+  /* ===== dock nav ===== */
+  .dock-wrap{ position:fixed; bottom:14px; left:50%; transform:translateX(-50%); z-index:95; max-width:94vw; display:none; }
+  .dock{ display:flex; gap:4px; background:var(--ink); padding:8px; border-radius:14px; box-shadow:0 10px 26px rgba(28,26,22,0.35); overflow-x:auto; scrollbar-width:none; }
+  .dock::-webkit-scrollbar{ display:none; }
+  .dock-item{ font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:0.05em; white-space:nowrap; color:var(--paper); opacity:0.6; background:rgba(233,227,210,0.08); border:none; border-radius:8px; padding:8px 13px; transition:transform 0.18s cubic-bezier(.2,.8,.3,1), opacity 0.18s, background 0.18s; }
+  .dock-item:hover{ opacity:1; background:var(--stamp); transform:translateY(-6px) scale(1.1); }
+  .dock-item.on{ opacity:1; background:var(--verify); }
+</style>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="brand-block" onclick="goTo('landing')">
+    <span class="brand">THE HIRING <span>ROOM</span></span>
+    <span class="case">CASE 01 · GIRL GEEKS 2026</span>
+  </div>
+  <nav class="main-nav" id="mainNav">
+    <button class="nav-link" data-view="landing" onclick="goTo('landing')">Home</button>
+    <button class="nav-link" data-view="dashboard" onclick="goTo('dashboard')">Dashboard</button>
+    <button class="nav-link" data-view="upload" onclick="goTo('upload')">Upload</button>
+    <button class="nav-link" data-view="interview" onclick="goTo('interview')">Interview</button>
+    <button class="nav-link" data-view="results" onclick="goTo('results')">Verdict</button>
+  </nav>
+  <div class="header-right">
+    <button class="pill-btn" id="signInBtn" onclick="goTo('auth')">Sign In</button>
+    <button class="pill-btn ghost" style="display:none" id="signOutBtn" onclick="signOut()">Sign out</button>
+  </div>
+</header>
+
+<div class="app-shell">
+
+  <!-- ===== LANDING (public) ===== -->
+  <section class="view active" id="view-landing">
+    <div class="hero">
+      <span class="stamp-badge">Panel Reviewed</span>
+      <h1>THE HIRING ROOM</h1>
+      <p class="sub">Not a score. A panel's reasoning.</p>
+      <div class="hero-ctas">
+        <button class="cta-btn" id="heroGetStarted" onclick="goTo(state.loggedIn ? 'dashboard' : 'auth')">Get Started</button>
+        <button class="pill-btn" id="heroSignIn" onclick="goTo('auth')">Sign In</button>
+      </div>
+    </div>
+
+    <div class="exhibit-tab reveal"><span class="tag">Exhibit A</span><span class="rule"></span></div>
+    <p class="lede reveal">Every existing resume and interview tool hands back <em>a single opaque score</em> — never the reasoning behind it. A real hiring decision has never worked that way.</p>
+    <div class="compare">
+      <div class="doc today reveal">
+        <div class="doc-head">On file today</div>
+        <h3>The Score</h3>
+        <ul><li>A single opaque score</li><li>No insight into the why</li><li>One evaluator's lens only</li></ul>
+      </div>
+      <div class="doc panel reveal">
+        <div class="doc-head">This case's approach</div>
+        <h3>The Panel</h3>
+        <ul><li>Three-persona panel debate</li><li>Visible disagreement, on record</li><li>Specific, actionable gaps</li></ul>
+      </div>
+    </div>
+
+    <div class="exhibit-tab reveal"><span class="tag">Exhibit B</span><span class="rule"></span></div>
+    <div class="card chart-card reveal">
+      <div class="chart-head">
+        <h3>Candidates improve session over session</h3>
+        <span class="chart-note">Sample cohort — 6 mock sessions</span>
+      </div>
+      <svg id="landingChart" viewBox="0 0 560 220" style="width:100%; height:auto; overflow:visible;"></svg>
+      <div class="chart-legend">
+        <span><i class="sw" style="background:var(--ink-soft)"></i>Score-only tool (self-reported)</span>
+        <span><i class="sw" style="background:var(--verify)"></i>Panel deliberation (this app)</span>
+      </div>
+      <p class="chart-caption">Candidates who see <em style="color:var(--ink)">why</em> an answer fell short revise it — candidates who only see a number tend to repeat the same answer.</p>
+    </div>
+
+    <div class="exhibit-tab reveal"><span class="tag">Exhibit C</span><span class="rule"></span></div>
+    <p class="lede reveal">What's actually in the file.</p>
+    <div class="bento">
+      <div class="card f1 reveal"><div class="num">01</div><h4>Three-Persona Panel</h4><p>HR, Tech Lead &amp; Hiring Manager each interview from their own lens.</p></div>
+      <div class="card f2 reveal"><div class="num">02</div><h4>Visible Deliberation</h4><p>The panel debates the candidate afterward — disagreements included.</p></div>
+      <div class="card f3 reveal"><div class="num">03</div><h4>JD-Matched Resume</h4><p>Semantic match, ATS-parse flags, per-requirement gaps.</p></div>
+      <div class="card f4 reveal"><div class="num">04</div><h4>Interviewer Memory</h4><p>The panel calls back to earlier answers, like a real interviewer.</p></div>
+      <div class="card f5 reveal"><div class="num">05</div><h4>STAR Detection</h4><p>Labels Situation / Task / Action / Result in every answer.</p></div>
+    </div>
+
+    <div class="cta-row reveal" style="text-align:center; margin-top:40px;">
+      <button class="cta-btn" onclick="goTo(state.loggedIn ? 'dashboard' : 'auth')">Enter the Room</button>
+    </div>
+  </section>
+
+  <!-- ===== AUTH ===== -->
+  <section class="view" id="view-auth">
+    <div class="auth-wrap">
+      <div class="auth-card">
+        <div class="auth-tabs">
+          <button class="auth-tab active" id="tabSignin" onclick="setAuthTab('signin')">Sign In</button>
+          <button class="auth-tab" id="tabRegister" onclick="setAuthTab('register')">Register</button>
+        </div>
+
+        <div class="field" id="fieldName" style="display:none">
+          <label>Full name</label>
+          <input type="text" id="inName" placeholder="Jane Candidate">
+        </div>
+        <div class="field">
+          <label>Email</label>
+          <input type="email" id="inEmail" placeholder="you@email.com">
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <input type="password" id="inPass" placeholder="••••••••">
+        </div>
+        <button class="auth-submit" id="authSubmit" onclick="submitAuth()">Enter the Room</button>
+        <div class="verify-flash" id="verifyFlash"><span class="dot"></span> Contacting the panel…</div>
+        <div class="auth-error" id="authError"></div>
+
+        <div style="display:flex; align-items:center; gap:10px; margin:18px 0;">
+          <div style="flex:1; height:1px; background:var(--line);"></div>
+          <span class="mono" style="font-size:11px; color:var(--ink-soft);">or</span>
+          <div style="flex:1; height:1px; background:var(--line);"></div>
+        </div>
+        <div id="googleSignInDiv" style="display:flex; justify-content:center;"></div>
+
+        <p class="auth-note">Your case file stays private — only your panel sees it.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== DASHBOARD ===== -->
+  <section class="view" id="view-dashboard">
+    <div class="dash-head">
+      <div>
+        <h2>Welcome back<span id="dashName"></span>.</h2>
+        <p class="mono" style="font-size:12px; color:var(--ink-soft); margin-top:4px;" id="dashSubline">Your case file, at a glance.</p>
+      </div>
+      <button class="cta-btn" onclick="goTo('upload')">+ New Session</button>
+    </div>
+
+    <div class="card" id="resumeInterviewBanner" style="display:none; margin-bottom:20px; border-color:var(--rust);">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap;">
+        <div>
+          <div class="section-label" style="margin-bottom:4px;">Interview in progress</div>
+          <div id="resumeInterviewRole" style="font-weight:600;"></div>
+        </div>
+        <button class="pill-btn" onclick="goTo('interview')">Resume interview →</button>
+      </div>
+    </div>
+
+    <div class="stat-row stagger" id="statRow">
+      <div class="card stat-card"><div class="label">Sessions Completed</div><div class="value" id="statSessions">0</div></div>
+      <div class="card stat-card"><div class="label">Resumes Analyzed</div><div class="value verify" id="statResumes">0</div></div>
+      <div class="card stat-card"><div class="label">Latest Verdict</div><div class="value gold" id="statVerdict">—</div></div>
+    </div>
+
+    <div class="section-label" id="growthLabel" style="display:none; margin-top:6px;">Verdict trend over time</div>
+    <div class="card chart-card" id="growthChartCard" style="display:none; margin-bottom:30px;">
+      <svg id="growthChart" viewBox="0 0 560 160" style="width:100%; height:auto;"></svg>
+      <p class="chart-caption">Strong = 3, Lean = 2, Discuss = 1 per session, oldest to most recent.</p>
+    </div>
+
+    <div class="section-label" style="margin-top:30px;">How You're Doing Overall</div>
+    <p class="mono" style="font-size:11px; color:var(--ink-soft); margin:-6px 0 12px;" id="overviewSummary">Loading…</p>
+    <div id="overviewPanel" style="margin-bottom:30px;"></div>
+
+    <div class="section-label" style="margin-top:30px;">Session History</div>
+    <p class="mono" style="font-size:11px; color:var(--ink-soft); margin:-6px 0 12px;">Click a session to review its full transcript and verdicts.</p>
+    <div id="sessionList"></div>
+  </section>
+
+  <!-- ===== SESSION DETAIL (overlay) ===== -->
+  <div id="sessionDetailOverlay" style="display:none; position:fixed; inset:0; background:rgba(28,26,22,0.55); z-index:200; padding:30px 16px; overflow-y:auto;">
+    <div class="card" style="max-width:720px; margin:0 auto; padding:26px;">
+      <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:16px;">
+        <h3 id="sessionDetailTitle">Session</h3>
+        <button class="pill-btn ghost" onclick="closeSessionDetail()">Close</button>
+      </div>
+      <div id="sessionDetailVerdicts" class="verdict-grid" style="margin-bottom:20px;"></div>
+      <div class="section-label">Performance by Evaluator</div>
+      <div id="sessionDetailPerformance" style="margin-bottom:20px;"></div>
+      <div class="section-label">Transcript</div>
+      <div class="transcript" id="sessionDetailTranscript">—</div>
+    </div>
+  </div>
+
+  <!-- ===== UPLOAD ===== -->
+  <section class="view" id="view-upload">
+    <div style="display:flex; justify-content:space-between; align-items:baseline;">
+      <h2 style="margin-bottom:6px;">Submit your resume</h2>
+      <a href="#" onclick="goTo('dashboard'); return false;" class="mono" style="font-size:12px; color:var(--ink-soft); text-decoration:underline;">← Back to Dashboard</a>
+    </div>
+    <p class="mono" style="font-size:12.5px; color:var(--ink-soft); margin-bottom:24px;">Exhibit — matched against the job description before the panel convenes.</p>
+
+    <div class="card" id="reuseResumeCard" style="display:none; margin-bottom:20px; padding:16px 20px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap;">
+        <div>
+          <div class="section-label" style="margin-bottom:4px;">Resume on file</div>
+          <div class="mono" style="font-size:13px;">
+            <strong id="reuseResumeName" style="color:var(--ink)">—</strong>
+            <span style="color:var(--ink-soft)"> · match <span id="reuseResumeScore">—</span>%</span>
+          </div>
+        </div>
+        <div style="display:flex; gap:10px;">
+          <button class="pill-btn" onclick="continueWithLastResume()">Continue with this resume</button>
+          <button class="pill-btn ghost" onclick="document.getElementById('reuseResumeCard').style.display='none'">Upload a different one</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="field-block" id="jdFieldBlock">
+      <label>Job description</label>
+      <textarea id="jdText" placeholder="Paste the job description here — one requirement per line works best."></textarea>
+    </div>
+
+    <div class="dropzone" id="dropzone">
+      <div class="dz-icon">⌘</div>
+      <p><strong style="color:var(--ink)">Drop your resume here</strong>, or click to browse</p>
+      <p style="font-size:12px;">PDF or DOCX, up to 5MB</p>
+      <input type="file" id="fileInput" style="display:none" accept=".pdf,.docx">
+    </div>
+    <div class="file-chip" id="fileChip"><span class="dot"></span><span class="name" id="fileName">resume.pdf</span></div>
+    <div style="margin:-8px 0 12px;">
+      <a href="#" onclick="skipResumeUpload(); return false;" class="mono" style="font-size:12px; color:var(--ink-soft); text-decoration:underline;">Skip resume, start interview anyway →</a>
+    </div>
+    <div class="progress-wrap" id="progressWrap">
+      <div class="progress-label" id="progressLabel">Running semantic JD-match…</div>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+    </div>
+    <div class="card match-card" id="matchCard">
+      <div class="section-label" style="margin-bottom:14px;">Gap Analysis</div>
+      <div class="row"><span>Semantic JD match</span><strong id="matchScoreOut">—</strong></div>
+      <div class="row" style="display:block;">
+        <div style="background:var(--line); border-radius:4px; height:8px; overflow:hidden; margin-bottom:6px;">
+          <div id="matchFill" style="background:linear-gradient(90deg, var(--stamp), var(--gold)); height:100%; width:0%; transition:width .4s ease;"></div>
+        </div>
+        <div class="mono" id="matchVerdict" style="font-size:12px; font-weight:600;"></div>
+      </div>
+      <div class="row" style="display:block;"><span>Matched points</span><ul id="matchedList"></ul></div>
+      <div class="row" style="display:block;"><span>Gaps</span><ul id="gapList"></ul></div>
+    </div>
+    <div id="uploadDifferentLink" style="display:none; margin:-8px 0 12px;">
+      <a href="#" onclick="useDifferentResumeInstead(); return false;" class="mono" style="font-size:12px; color:var(--ink-soft); text-decoration:underline;">Upload a different resume instead</a>
+    </div>
+    <div class="cta-row" id="beginRow" style="display:none;">
+      <div class="role-field field-block" style="max-width:100%">
+        <label>Role you're interviewing for</label>
+        <input type="text" id="roleTitleInput" placeholder="e.g. Backend Engineer" style="width:100%; padding:10px 12px; border:1.5px solid var(--line); border-radius:6px; background:var(--paper-card); font-size:14px;">
+      </div>
+      <div class="role-field field-block" style="max-width:100%">
+        <label>Difficulty</label>
+        <div id="difficultyPicker" style="display:flex; gap:8px;">
+          <button type="button" class="pill-btn diff-opt" data-diff="easy" onclick="setDifficulty('easy')">Easy</button>
+          <button type="button" class="pill-btn diff-opt on" data-diff="moderate" onclick="setDifficulty('moderate')">Moderate</button>
+          <button type="button" class="pill-btn diff-opt" data-diff="difficult" onclick="setDifficulty('difficult')">Difficult</button>
+        </div>
+      </div>
+      <button class="cta-btn" onclick="startInterview()">Begin Interview</button>
+    </div>
+  </section>
+
+  <!-- ===== INTERVIEW ===== -->
+  <section class="view" id="view-interview">
+    <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:20px;">
+      <h2 style="margin-bottom:0;">The panel is listening</h2>
+      <a href="#" onclick="goTo('dashboard'); return false;" class="mono" style="font-size:12px; color:var(--ink-soft); text-decoration:underline;">← Back to Dashboard</a>
+    </div>
+    <div class="persona-strip" id="personaStrip">
+      <div class="persona-pill active" data-p="hr"><div class="role">Evaluator 01</div><div class="who">HR</div></div>
+      <div class="persona-pill" data-p="tech"><div class="role">Evaluator 02</div><div class="who">Tech Lead</div></div>
+      <div class="persona-pill" data-p="hm"><div class="role">Evaluator 03</div><div class="who">Hiring Manager</div></div>
+    </div>
+    <div class="card question-box" id="questionBox">
+      <div class="q-label" id="qLabel">Question 1 — HR</div>
+      <div class="q-text" id="questionText">Loading your first question…</div>
+    </div>
+    <div class="interview-stage">
+      <div class="mic-wrap">
+        <div class="mic-ring" id="micRing"></div>
+        <button class="mic-btn" id="micBtn" onclick="toggleMic()">🎙</button>
+      </div>
+      <div class="mic-status" id="micStatus">Tap to answer</div>
+      <div class="signal-note" id="signalNote"></div>
+      <div class="selfview-wrap">
+        <button class="selfview-toggle" id="selfviewToggle" onclick="toggleSelfView()">Enable camera self-check (beta)</button>
+        <div class="selfview-box" id="selfviewBox">
+          <video id="selfviewVideo" autoplay muted playsinline></video>
+          <canvas id="selfviewCanvas"></canvas>
+        </div>
+        <div class="selfview-readout" id="selfviewReadout"></div>
+      </div>
+    </div>
+    <div class="caption" id="caption"></div>
+    <div class="interview-actions">
+      <button class="pill-btn" id="submitAnswerBtn" onclick="submitTypedAnswer()" style="display:none;">Submit Answer</button>
+      <button class="cta-btn" onclick="endInterview()">End &amp; See Verdict</button>
+    </div>
+  </section>
+
+  <!-- ===== RESULTS ===== -->
+  <section class="view" id="view-results">
+    <h2 style="margin-bottom:6px;">The panel's reasoning</h2>
+    <p class="mono" style="font-size:12.5px; color:var(--ink-soft); margin-bottom:24px;">Not a score. The full deliberation.</p>
+    <p class="mono" id="integrityNote" style="display:none; font-size:12px; color:var(--stamp); margin-bottom:14px;"></p>
+    <div class="verdict-grid stagger" id="verdictGrid"></div>
+
+    <div class="section-label" style="margin-top:26px;">Performance by Evaluator</div>
+    <p class="mono" style="font-size:11px; color:var(--ink-soft); margin:-6px 0 12px;">Delivery signal per panelist, from your voice and self-reported camera check.</p>
+    <div id="performancePanel" class="stagger"></div>
+
+    <div class="section-label">Full Transcript</div>
+    <div class="transcript" id="transcriptBox">—</div>
+    <div class="section-label" id="coachingLabel" style="display:none;">Stronger Answers — Coaching</div>
+    <div id="coachingList"></div>
+    <div class="cta-row"><button class="cta-btn" onclick="goTo('dashboard')">Back to Dashboard</button></div>
+  </section>
+
+</div>
+
+<footer class="site-footer">
+  <div class="footer-wrap">
+    <div>
+      <div class="brand">THE HIRING <span>ROOM</span></div>
+      <p>An AI-powered resume and interview coach that shows the reasoning behind the verdict, not just a score.</p>
+    </div>
+    <div class="footer-links">
+      <h5>Product</h5>
+      <a href="#" onclick="goTo('landing'); return false;">Home</a>
+      <a href="#" onclick="goTo('dashboard'); return false;">Dashboard</a>
+      <a href="#" onclick="goTo('upload'); return false;">Upload Resume</a>
+      <a href="#" onclick="goTo('interview'); return false;">Interview</a>
+    </div>
+    <div class="footer-links">
+      <h5>Case File</h5>
+      <a href="#">Divya Sharma</a>
+      <a href="#">Anagha Pai</a>
+      <a href="#">Harshitha N</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>Case 01 · Girl Geeks 2026</span>
+    <span>Built with a panel, not a score.</span>
+  </div>
+</footer>
+
+<div class="dock-wrap">
+  <nav class="dock" id="dock">
+    <button class="dock-item" data-view="dashboard" onclick="goTo('dashboard')">Dashboard</button>
+    <button class="dock-item" data-view="upload" onclick="goTo('upload')">Upload</button>
+    <button class="dock-item" data-view="interview" onclick="goTo('interview')">Interview</button>
+    <button class="dock-item" data-view="results" onclick="goTo('results')">Verdict</button>
+  </nav>
+</div>
+
+<script>
+  // ===================================================================
+  // API layer — talks to the real FastAPI backend. Change API_BASE if
+  // you deploy the backend somewhere other than localhost.
+  // ===================================================================
+  const API_BASE = 'http://localhost:8000';
+
+  const state = {
+    loggedIn:false, name:'', authMode:'signin', token:null,
+    currentSessionId:null, currentTurnId:null, currentPersona:null,
+    lastQuestion:'', lastVoiceSignal:null,
+    resumeAnalysisId:null, resumeFilename:null,
+    awaitingVerdict:false,
+  };
+
+  function authHeaders(extra){
+    const h = Object.assign({}, extra||{});
+    if(state.token) h['Authorization'] = 'Bearer ' + state.token;
+    return h;
+  }
+
+  async function api(path, { method='GET', body=null, isForm=false } = {}){
+    const opts = { method, headers: authHeaders(isForm ? {} : {'Content-Type':'application/json'}) };
+    if(body) opts.body = isForm ? body : JSON.stringify(body);
+    const res = await fetch(API_BASE + path, opts);
+    if(!res.ok){
+      let detail = res.statusText;
+      try {
+        const j = await res.json();
+        if(Array.isArray(j.detail)){
+          // FastAPI validation errors: a list of {loc, msg, type} objects.
+          detail = j.detail.map(d => (d.loc ? d.loc.join('.') + ': ' : '') + (d.msg || JSON.stringify(d))).join('; ');
+        } else if(j.detail){
+          detail = j.detail;
+        }
+      } catch(e){}
+      throw new Error(detail);
+    }
+    return res.status === 204 ? null : res.json();
+  }
+
+  const gated = ['dashboard','upload','interview','results'];
+  const publicViews = ['landing','auth'];
+
+  function setAuthTab(mode){
+    state.authMode = mode;
+    document.getElementById('tabSignin').classList.toggle('active', mode==='signin');
+    document.getElementById('tabRegister').classList.toggle('active', mode==='register');
+    document.getElementById('fieldName').style.display = mode==='register' ? 'block' : 'none';
+    document.getElementById('authSubmit').textContent = mode==='register' ? 'Create Case File' : 'Enter the Room';
+    document.getElementById('authError').classList.remove('show');
+  }
+
+  async function submitAuth(){
+    const name = document.getElementById('inName').value.trim();
+    const email = document.getElementById('inEmail').value.trim();
+    const password = document.getElementById('inPass').value;
+    const errEl = document.getElementById('authError');
+    const flash = document.getElementById('verifyFlash');
+    errEl.classList.remove('show');
+
+    if(!email || !password){
+      errEl.textContent = 'Email and password are required.';
+      errEl.classList.add('show');
+      return;
+    }
+
+    flash.classList.add('show');
+    document.getElementById('authSubmit').disabled = true;
+    try {
+      const path = state.authMode === 'register' ? '/auth/register' : '/auth/login';
+      const payload = state.authMode === 'register'
+        ? { name: name || email.split('@')[0], email, password }
+        : { email, password };
+      const data = await api(path, { method:'POST', body: payload });
+      state.token = data.access_token;
+      state.name = name || email.split('@')[0];
+      state.loggedIn = true;
+      localStorage.setItem('hr_token', state.token);
+      localStorage.setItem('hr_name', state.name);
+      document.getElementById('signOutBtn').style.display = 'inline-block';
+      document.getElementById('signInBtn').style.display = 'none';
+      document.getElementById('heroSignIn').style.display = 'none';
+      goTo('dashboard');
+    } catch(e){
+      errEl.textContent = e.message || 'Something went wrong.';
+      errEl.classList.add('show');
+    } finally {
+      flash.classList.remove('show');
+      document.getElementById('authSubmit').disabled = false;
+    }
+  }
+
+  // ===================================================================
+  // Google Sign-In. Replace GOOGLE_CLIENT_ID below with your own from
+  // console.cloud.google.com/apis/credentials — leave the placeholder in
+  // and this simply won't render a working button (Google will show a
+  // console error), everything else keeps working normally.
+  // ===================================================================
+  const GOOGLE_CLIENT_ID = '1060419175030-ueu5vj3tnf8d1ud0sdmnqu2mbmo1tdgh.apps.googleusercontent.com';
+
+  async function handleGoogleCredential(response){
+    const errEl = document.getElementById('authError');
+    errEl.classList.remove('show');
+    try {
+      const data = await api('/auth/google', { method:'POST', body: { id_token: response.credential } });
+      state.token = data.access_token;
+      state.loggedIn = true;
+      localStorage.setItem('hr_token', state.token);
+      localStorage.setItem('hr_name', state.name || '');
+      document.getElementById('signOutBtn').style.display = 'inline-block';
+      document.getElementById('signInBtn').style.display = 'none';
+      document.getElementById('heroSignIn').style.display = 'none';
+      goTo('dashboard');
+    } catch(e){
+      errEl.textContent = e.message || 'Google sign-in failed.';
+      errEl.classList.add('show');
+    }
+  }
+
+  function initGoogleSignIn(){
+    if(!window.google || !window.google.accounts || GOOGLE_CLIENT_ID.startsWith('YOUR_')) return;
+    google.accounts.id.initialize({
+      client_id: GOOGLE_CLIENT_ID,
+      callback: handleGoogleCredential,
+    });
+    google.accounts.id.renderButton(
+      document.getElementById('googleSignInDiv'),
+      { theme: 'outline', size: 'large', width: 280, text: 'continue_with' }
+    );
+  }
+  // The Google script loads with `defer`, so it may not be ready the instant
+  // this runs — retry briefly instead of failing silently on first load.
+  let googleInitAttempts = 0;
+  (function tryInitGoogle(){
+    if(window.google && window.google.accounts){ initGoogleSignIn(); return; }
+    if(googleInitAttempts++ < 20) setTimeout(tryInitGoogle, 250);
+  })();
+
+  function signOut(){
+    state.loggedIn = false;
+    state.token = null;
+    localStorage.removeItem('hr_token');
+    localStorage.removeItem('hr_name');
+    document.getElementById('signOutBtn').style.display = 'none';
+    document.getElementById('signInBtn').style.display = 'inline-block';
+    document.getElementById('heroSignIn').style.display = 'inline-block';
+    document.getElementById('authError').classList.remove('show');
+    document.getElementById('authSubmit').disabled = false;
+    goTo('landing');
+  }
+
+  function goTo(view, opts){
+    opts = opts || {};
+    if(gated.includes(view) && !state.loggedIn){ view = 'auth'; }
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active','enter'));
+    const target = document.getElementById('view-'+view);
+    target.classList.add('active');
+    void target.offsetWidth;
+    target.classList.add('enter');
+    document.querySelectorAll('.nav-link').forEach(d => d.classList.toggle('on', d.dataset.view===view));
+    document.querySelectorAll('.dock-item').forEach(d => d.classList.toggle('on', d.dataset.view===view));
+    document.querySelector('.dock-wrap').style.display = gated.includes(view) ? 'block' : 'none';
+    window.scrollTo({top:0, behavior:'instant'});
+    if(view==='dashboard') renderDashboard();
+    if(view==='upload') renderUploadReuse();
+    // Skipped when we're navigating here ourselves right before populating
+    // the screen (e.g. starting a brand-new interview) — otherwise this
+    // async check can resolve after our own render and stomp the real
+    // question with a stale "no interview in progress" message.
+    if(view==='interview' && !opts.skipEntry) renderInterviewEntry();
+    if(view==='landing') requestAnimationFrame(drawLandingChart);
+    initReveal();
+  }
+
+  // Show a "continue with last resume" option on the Upload tab, if the
+  // candidate has analyzed one before — so they don't have to re-upload
+  // the same file for a different role.
+  async function renderUploadReuse(){
+    const card = document.getElementById('reuseResumeCard');
+    if(state.resumeAnalysisId){ card.style.display = 'none'; return; } // already picked one this visit
+    try {
+      const latest = await api('/resume/latest');
+      if(latest){
+        document.getElementById('reuseResumeName').textContent = latest.filename;
+        document.getElementById('reuseResumeScore').textContent = latest.match_score;
+        card.dataset.payload = JSON.stringify(latest);
+        card.style.display = 'block';
+      } else {
+        card.style.display = 'none';
+      }
+    } catch(e){
+      card.style.display = 'none';
+    }
+  }
+
+  function continueWithLastResume(){
+    const card = document.getElementById('reuseResumeCard');
+    const latest = JSON.parse(card.dataset.payload || '{}');
+    if(!latest.id) return;
+    state.resumeAnalysisId = latest.id;
+    state.resumeFilename = latest.filename;
+    setMatchScore(latest.match_score);
+    document.getElementById('matchedList').innerHTML = latest.matched_points.map(p => '<li>'+escapeHtml(p)+'</li>').join('') || '<li>—</li>';
+    document.getElementById('gapList').innerHTML = latest.gap_points.map(p => '<li>'+escapeHtml(p)+'</li>').join('') || '<li>None flagged</li>';
+    document.getElementById('matchCard').classList.add('show');
+    document.getElementById('beginRow').style.display = 'block';
+    card.style.display = 'none';
+    // No need to show the upload dropzone or JD box once a resume is
+    // already picked — that was confusing people into thinking they still
+    // had to upload something. Give a small link to switch back instead.
+    document.getElementById('jdFieldBlock').style.display = 'none';
+    document.getElementById('dropzone').style.display = 'none';
+    document.getElementById('uploadDifferentLink').style.display = 'block';
+  }
+
+  function useDifferentResumeInstead(){
+    document.getElementById('jdFieldBlock').style.display = 'block';
+    document.getElementById('dropzone').style.display = 'block';
+    document.getElementById('uploadDifferentLink').style.display = 'none';
+    document.getElementById('matchCard').classList.remove('show');
+    document.getElementById('beginRow').style.display = 'none';
+    state.resumeAnalysisId = null;
+    state.resumeFilename = null;
+  }
+
+  // The browser's in-memory `state` object resets on every page reload,
+  // tab close, or fresh login — but the backend/DB still knows about an
+  // in-progress interview. This checks the DB and restores it into `state`
+  // so the candidate isn't bounced back to Upload just because they
+  // refreshed the page. Returns the active session data, or null.
+  // Just PEEKS at whether a session is resumable — must NOT mutate global
+  // state itself, since this is also called from the Dashboard purely to
+  // decide whether to show the "Resume interview" banner. It used to set
+  // state.currentSessionId as a side effect every time it was called, so
+  // clicking "Resume interview →" found currentSessionId already set and
+  // assumed (wrongly) that a question was already loaded on the Interview
+  // screen — leaving it blank/stuck. Only renderInterviewEntry() (the
+  // actual Interview screen) should apply the result via applyQuestion().
+  async function checkActiveInterview(){
+    try {
+      return await api('/interview/active');
+    } catch(e){
+      return null;
+    }
+  }
+
+  // Entering the Interview tab directly (nav/dock) with no session running
+  // used to just sit there or show a stale error. Now it first checks the
+  // backend for an in-progress session before declaring there's nothing to
+  // resume, and points back to Upload only if there's genuinely nothing.
+  async function renderInterviewEntry(){
+    // The extra "&& !state.awaitingVerdict" matters: without it, coming
+    // back to the Interview tab while a just-clicked "End & See Verdict"
+    // request was still in flight (or had failed) left the screen stuck
+    // forever on "The panel is deliberating…" or a dead "Retry" message,
+    // because currentSessionId being set made this function bail out
+    // immediately without ever re-checking what's actually true anymore.
+    if(state.currentSessionId && !state.awaitingVerdict) return; // a session is already in progress — leave it alone
+
+    document.getElementById('qLabel').textContent = 'Checking for an in-progress session…';
+    document.getElementById('questionText').textContent = '';
+
+    const active = await checkActiveInterview();
+    if(active){
+      applyQuestion(active); // this is the only place that should apply it
+      return;
+    }
+
+    document.getElementById('qLabel').textContent = 'No interview in progress';
+    document.getElementById('questionText').innerHTML =
+      (state.resumeAnalysisId
+        ? 'Your resume is ready. Head to Upload to name the role and begin.'
+        : 'Nothing to show yet — upload a resume (or reuse a previous one) from the Upload tab to start a session.')
+      + ' <a href="#" onclick="goTo(\'upload\'); return false;" style="color:var(--rust); text-decoration:underline;">Go to Upload →</a>';
+    document.getElementById('micBtn') && (document.getElementById('micBtn').style.display = 'none');
+  }
+
+  function animateCount(el, to){
+    let from = 0; const dur = 700, start = performance.now();
+    function step(t){
+      const p = Math.min(1, (t-start)/dur);
+      el.textContent = Math.round(from + (to-from)*p);
+      if(p<1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+  function capWord(w){ return w.charAt(0).toUpperCase()+w.slice(1); }
+
+  async function renderDashboard(){
+    document.getElementById('dashName').textContent = state.name ? ', ' + state.name : '';
+
+    const banner = document.getElementById('resumeInterviewBanner');
+    if(state.currentSessionId){
+      document.getElementById('resumeInterviewRole').textContent = 'Continue where you left off';
+      banner.style.display = 'block';
+    } else {
+      const active = await checkActiveInterview();
+      if(active){
+        document.getElementById('resumeInterviewRole').textContent = active.role_title || 'Continue where you left off';
+        banner.style.display = 'block';
+      } else {
+        banner.style.display = 'none';
+      }
+    }
+
+    const list = document.getElementById('sessionList');
+    list.innerHTML = '<div class="empty-note">Loading your case file…</div>';
+    try {
+      const stats = await api('/dashboard/stats');
+      animateCount(document.getElementById('statSessions'), stats.sessions_completed);
+      animateCount(document.getElementById('statResumes'), stats.resumes_analyzed);
+      document.getElementById('statVerdict').textContent = stats.history.length ? capWord(stats.history[0].overall_verdict) : '—';
+
+      const subline = document.getElementById('dashSubline');
+      if(stats.history.length){
+        subline.textContent = 'Last up: ' + stats.history[0].role_title + ' — ' + stats.sessions_completed + ' session(s) completed so far.';
+      } else {
+        subline.textContent = 'Your case file, at a glance — start your first session below.';
+      }
+
+      list.innerHTML = '';
+      if(!stats.history.length){
+        list.innerHTML = '<div class="empty-note">No sessions yet — start one from Upload.</div>';
+        return;
+      }
+      stats.history.forEach(s => {
+        const row = document.createElement('div');
+        row.className = 'card session-row';
+        row.style.cursor = 'pointer';
+        row.onclick = () => openSessionDetail(s.session_id, s.role_title);
+        const date = new Date(s.created_at).toLocaleDateString();
+        row.innerHTML = '<div><div class="role-name">'+escapeHtml(s.role_title)+'</div><div class="meta">'+date+' · '+s.status+'</div></div>' +
+          '<span class="verdict-chip '+s.overall_verdict+'">'+capWord(s.overall_verdict)+'</span>';
+        list.appendChild(row);
+      });
+
+      drawGrowthChart(stats.history);
+    } catch(e){
+      list.innerHTML = '<div class="empty-note">Could not reach the panel API — is the backend running at '+API_BASE+'?</div>';
+    }
+
+    try {
+      const overview = await api('/dashboard/overview');
+      renderOverviewPanel(overview);
+    } catch(e){
+      document.getElementById('overviewSummary').textContent = 'Could not load overview.';
+      document.getElementById('overviewPanel').innerHTML = '';
+    }
+  }
+
+  function renderOverviewPanel(overview){
+    document.getElementById('overviewSummary').textContent = overview.summary || '';
+    const panel = document.getElementById('overviewPanel');
+    if(!overview.sessions_counted){
+      panel.innerHTML = '';
+      return;
+    }
+    function list(title, items, color){
+      if(!items || !items.length) return '';
+      return '<div style="margin-bottom:14px;">'
+        + '<div style="font-size:12px; font-weight:600; color:'+color+'; margin-bottom:6px;">'+title+'</div>'
+        + '<ul style="margin:0; padding-left:18px;">'
+        + items.map(i => '<li style="font-size:13px; color:var(--ink); margin-bottom:5px; line-height:1.4;">'+escapeHtml(i)+'</li>').join('')
+        + '</ul></div>';
+    }
+    panel.innerHTML = '<div class="card" style="padding:18px 20px;">'
+      + list('Strengths', overview.strengths, 'var(--verify-deep)')
+      + list('Where to improve', overview.improve, 'var(--rust)')
+      + (!overview.strengths.length && !overview.improve.length ? '<p class="mono" style="font-size:12px; color:var(--ink-soft);">Not enough signal yet — complete an interview with mic/camera on to see this.</p>' : '')
+      + '</div>';
+  }
+
+  function drawGrowthChart(history){
+    const card = document.getElementById('growthChartCard');
+    const label = document.getElementById('growthLabel');
+    const completed = history.filter(h => h.status === 'completed').slice().reverse(); // oldest first
+    if(completed.length < 2){
+      card.style.display = 'none';
+      label.style.display = 'none';
+      return;
+    }
+    card.style.display = 'block';
+    label.style.display = 'block';
+    const scoreMap = { strong: 3, lean: 2, discuss: 1 };
+    const values = completed.map(h => scoreMap[h.overall_verdict] || 1);
+    const svg = document.getElementById('growthChart');
+    const w=560, h=160, padL=30, padR=10, padT=14, padB=24;
+    const n = values.length;
+    const x = i => n===1 ? padL : padL + (i*(w-padL-padR)/(n-1));
+    const y = v => h - padB - ((v-1)/2)*(h-padT-padB);
+    const pathFor = arr => arr.map((v,i) => (i===0?'M':'L')+x(i)+','+y(v)).join(' ');
+    let content = '';
+    for(let g=0; g<=2; g++){
+      const gy = padT + g*(h-padT-padB)/2;
+      content += '<line x1="'+padL+'" y1="'+gy+'" x2="'+(w-padR)+'" y2="'+gy+'" stroke="rgba(28,26,22,0.08)" stroke-width="1"/>';
+    }
+    content += '<path d="'+pathFor(values)+'" fill="none" stroke="#2c6459" stroke-width="2.5"/>';
+    values.forEach((v,i) => { content += '<circle cx="'+x(i)+'" cy="'+y(v)+'" r="4" fill="#2c6459"/>'; });
+    svg.innerHTML = content;
+  }
+
+  async function openSessionDetail(sessionId, roleTitle){
+    const overlay = document.getElementById('sessionDetailOverlay');
+    document.getElementById('sessionDetailTitle').textContent = roleTitle;
+    document.getElementById('sessionDetailVerdicts').innerHTML = '<div class="empty-note">Loading…</div>';
+    document.getElementById('sessionDetailPerformance').innerHTML = '<div class="empty-note">Loading…</div>';
+    document.getElementById('sessionDetailTranscript').textContent = '—';
+    overlay.style.display = 'block';
+    try {
+      const data = await api(`/dashboard/session/${sessionId}`);
+      const labelMap = {hr:'HR', tech:'Tech Lead', hm:'Hiring Manager'};
+      document.getElementById('sessionDetailVerdicts').innerHTML = data.verdicts.map(v => {
+        const cls = v.verdict === 'strong' ? 'strong' : (v.verdict === 'lean' ? 'lean' : 'discuss');
+        return '<div class="card verdict-card '+cls+'"><div class="role">'+(labelMap[v.persona]||v.persona)+'</div>'
+          + '<div class="stamp-word">'+capWord(v.verdict)+' Hire</div>'
+          + '<p>'+escapeHtml(v.reasoning || '')+'</p></div>';
+      }).join('') || '<div class="empty-note">No verdicts recorded for this session.</div>';
+      document.getElementById('sessionDetailTranscript').textContent = data.transcript || '(empty transcript)';
+    } catch(e){
+      document.getElementById('sessionDetailVerdicts').innerHTML = '<div class="empty-note">Could not load: '+escapeHtml(e.message)+'</div>';
+    }
+    try {
+      const perf = await api(`/dashboard/session/${sessionId}/performance`);
+      renderPerformancePanel(perf, 'sessionDetailPerformance');
+    } catch(e){
+      document.getElementById('sessionDetailPerformance').innerHTML = '<div class="empty-note">Could not load performance data.</div>';
+    }
+  }
+
+  function closeSessionDetail(){
+    document.getElementById('sessionDetailOverlay').style.display = 'none';
+  }
+
+  function setMatchScore(score){
+    document.getElementById('matchScoreOut').textContent = score + '%';
+    document.getElementById('matchFill').style.width = Math.max(4, Math.min(100, score)) + '%';
+    const verdictEl = document.getElementById('matchVerdict');
+    if(score >= 75){ verdictEl.textContent = '✓ Strong match — this role fits your background well.'; verdictEl.style.color = 'var(--verify-deep)'; }
+    else if(score >= 50){ verdictEl.textContent = '~ Partial match — worth applying, but there are gaps to address.'; verdictEl.style.color = 'var(--gold)'; }
+    else { verdictEl.textContent = '✗ Limited match — this role may not be the best fit right now.'; verdictEl.style.color = 'var(--stamp)'; }
+  }
+
+  function escapeHtml(s){
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  /* ---- landing chart (inline SVG line chart, sample/illustrative data) ---- */
+  function drawLandingChart(){
+    const svg = document.getElementById('landingChart');
+    if(!svg || svg.dataset.drawn) return;
+    const scoreOnly = [30,33,31,35,34,36];
+    const panel      = [32,44,53,63,71,79];
+    const w=560, h=220, padL=30, padR=10, padT=10, padB=28;
+    const n = scoreOnly.length;
+    const x = i => padL + (i*(w-padL-padR)/(n-1));
+    const y = v => h - padB - (v/100)*(h-padT-padB);
+    function pathFor(arr){ return arr.map((v,i) => (i===0?'M':'L')+x(i)+','+y(v)).join(' '); }
+    let svgContent = '';
+    for(let g=0; g<=4; g++){
+      const gy = padT + g*(h-padT-padB)/4;
+      svgContent += '<line x1="'+padL+'" y1="'+gy+'" x2="'+(w-padR)+'" y2="'+gy+'" stroke="rgba(28,26,22,0.08)" stroke-width="1"/>';
+    }
+    svgContent += '<path d="'+pathFor(scoreOnly)+'" fill="none" stroke="#5b5648" stroke-width="2" stroke-dasharray="5,4"/>';
+    svgContent += '<path d="'+pathFor(panel)+'" fill="none" stroke="#2c6459" stroke-width="2.5"/>';
+    panel.forEach((v,i) => { svgContent += '<circle cx="'+x(i)+'" cy="'+y(v)+'" r="3.5" fill="#2c6459"/>'; });
+    const lastI = n-1;
+    svgContent += '<circle cx="'+x(lastI)+'" cy="'+y(panel[lastI])+'" r="6" fill="#a3402c"/>';
+    for(let i=0;i<n;i++){
+      svgContent += '<text x="'+x(i)+'" y="'+(h-8)+'" font-family="IBM Plex Mono, monospace" font-size="10" fill="#5b5648" text-anchor="middle">S'+(i+1)+'</text>';
+    }
+    svg.innerHTML = svgContent;
+    svg.dataset.drawn = '1';
+  }
+
+  /* ---- upload: real resume analysis against the backend ---- */
+  let selectedFile = null;
+  const dropzone = document.getElementById('dropzone');
+  dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag'); });
+  dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag'));
+  dropzone.addEventListener('drop', e => { e.preventDefault(); dropzone.classList.remove('drag'); if(e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });
+  dropzone.addEventListener('click', () => document.getElementById('fileInput').click());
+  document.getElementById('fileInput').addEventListener('change', e => { if(e.target.files[0]) handleFile(e.target.files[0]); });
+
+  async function handleFile(file){
+    selectedFile = file;
+    document.getElementById('fileName').textContent = file.name;
+    document.getElementById('fileChip').classList.add('show');
+
+    const jdText = document.getElementById('jdText').value.trim();
+    if(!jdText){
+      document.getElementById('progressLabel').textContent = 'Paste the job description above first, then re-drop the file.';
+      document.getElementById('progressWrap').classList.add('show');
+      return;
+    }
+
+    document.getElementById('progressWrap').classList.add('show');
+    document.getElementById('progressLabel').textContent = 'Running semantic JD-match…';
+    const fill = document.getElementById('progressFill');
+    fill.style.width = '0%';
+    setTimeout(() => { fill.style.width = '85%'; }, 60);
+
+    try {
+      const form = new FormData();
+      form.append('jd_text', jdText);
+      form.append('file', file);
+      const result = await api('/resume/analyze', { method:'POST', body: form, isForm: true });
+      state.resumeAnalysisId = result.id;
+      state.resumeFilename = result.filename;
+      document.getElementById('reuseResumeCard').style.display = 'none';
+      fill.style.width = '100%';
+      document.getElementById('progressLabel').textContent = 'Match complete.';
+      setMatchScore(result.match_score);
+      document.getElementById('matchedList').innerHTML = result.matched_points.map(p => '<li>'+escapeHtml(p)+'</li>').join('') || '<li>—</li>';
+      document.getElementById('gapList').innerHTML = result.gap_points.map(p => '<li>'+escapeHtml(p)+'</li>').join('') || '<li>None flagged</li>';
+      document.getElementById('matchCard').classList.add('show');
+      document.getElementById('beginRow').style.display = 'block';
+    } catch(e){
+      document.getElementById('progressLabel').textContent = 'Analysis failed: ' + e.message;
+    }
+  }
+
+  function setDifficulty(level){
+    state.difficulty = level;
+    document.querySelectorAll('.diff-opt').forEach(b => b.classList.toggle('on', b.dataset.diff === level));
+  }
+
+  function skipResumeUpload(){
+    state.resumeAnalysisId = null;
+    document.getElementById('beginRow').style.display = 'block';
+    document.getElementById('beginRow').scrollIntoView({behavior:'smooth', block:'start'});
+  }
+
+  async function startInterview(){
+    const roleTitle = document.getElementById('roleTitleInput').value.trim() || 'Untitled Role';
+    state.answeredCount = 0;
+    state.contextSwitches = 0;
+    state.pasteAttempts = 0;
+    goTo('interview', {skipEntry:true});
+    document.getElementById('questionText').textContent = 'Contacting the panel…';
+    try {
+      const data = await api('/interview/start', { method:'POST', body: { role_title: roleTitle, resume_analysis_id: state.resumeAnalysisId || null, difficulty: state.difficulty || 'moderate' } });
+      applyQuestion(data);
+    } catch(e){
+      const msg = e.message === 'Failed to fetch'
+        ? 'Could not reach the backend at ' + API_BASE + ' — make sure the uvicorn server is running.'
+        : 'Could not start the interview: ' + e.message;
+      document.getElementById('questionText').innerHTML = msg +
+        '<br><button class="pill-btn" style="margin-top:12px;" onclick="startInterview()">Retry</button>';
+    }
+  }
+
+  /* ---- interview ---- */
+  function applyQuestion(data){
+    state.currentSessionId = data.session_id;
+    state.currentTurnId = data.turn_id;
+    state.currentPersona = data.persona;
+    state.lastQuestion = data.question;
+    state.lastVoiceSignal = null;
+
+    document.querySelectorAll('.persona-pill').forEach(p => p.classList.toggle('active', p.dataset.p===data.persona));
+    const labelMap = {hr:'HR', tech:'Tech Lead', hm:'Hiring Manager'};
+    document.getElementById('qLabel').textContent = (labelMap[data.persona]||data.persona) + ' asks:';
+    document.getElementById('questionText').textContent = data.question;
+    document.getElementById('caption').innerHTML = '';
+    document.getElementById('signalNote').textContent = '';
+    document.getElementById('submitAnswerBtn').style.display = 'none';
+    // renderInterviewEntry() hides the mic while there's no question to
+    // answer — restore it now that there's a real one, or it stays hidden
+    // for the rest of the session.
+    const micBtn = document.getElementById('micBtn');
+    if(micBtn) micBtn.style.display = '';
+    document.getElementById('micStatus').textContent = 'Tap to answer';
+  }
+
+  let recognizer = null;
+  let listening = false;
+  let manualStop = false;
+  let finalTranscript = '';
+  let mediaRecorder = null;
+  let audioChunks = [];
+  let micStream = null;
+  let silenceTimer = null;
+  let hasSpokenAnything = false;
+  const SILENCE_TIMEOUT_MS = 9000;
+
+  function getRecognizer(){
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if(!SR) return null;
+    const r = new SR();
+    r.continuous = true;
+    r.interimResults = true;
+    r.lang = 'en-US';
+    return r;
+  }
+
+  function armSilenceTimer(){
+    if(silenceTimer) clearTimeout(silenceTimer);
+    if(!hasSpokenAnything) return; // don't auto-submit before the person has said anything
+    silenceTimer = setTimeout(() => {
+      if(listening){
+        document.getElementById('micStatus').textContent = 'No speech detected for a few seconds — submitting automatically.';
+        stopListening();
+      }
+    }, SILENCE_TIMEOUT_MS);
+  }
+
+  async function toggleMic(){
+    if(!listening){
+      recognizer = getRecognizer();
+      if(!recognizer){
+        // No browser speech recognition available — fall back to a typed answer.
+        document.getElementById('micStatus').textContent = 'Voice capture not supported in this browser — type your answer instead.';
+        document.getElementById('submitAnswerBtn').style.display = 'inline-block';
+        showTypedFallback();
+        return;
+      }
+      finalTranscript = '';
+      manualStop = false;
+      hasSpokenAnything = false;
+      listening = true;
+      if(window.resetPostureStats) window.resetPostureStats();
+      document.getElementById('micBtn').classList.add('listening');
+      document.getElementById('micRing').classList.add('pulse');
+      document.getElementById('micStatus').textContent = 'Listening… (auto-submits after a few seconds of silence)';
+      document.getElementById('submitAnswerBtn').style.display = 'none';
+      document.getElementById('signalNote').textContent = '';
+
+      recognizer.onresult = (event) => {
+        let interim = '';
+        for(let i = event.resultIndex; i < event.results.length; i++){
+          const t = event.results[i][0].transcript;
+          if(event.results[i].isFinal) finalTranscript += t + ' ';
+          else interim += t;
+        }
+        if((finalTranscript + interim).trim()) hasSpokenAnything = true;
+        document.getElementById('caption').innerHTML = escapeHtml(finalTranscript + interim) + '<span class="cursor"></span>';
+        armSilenceTimer();
+      };
+      recognizer.onerror = (e) => {
+        // "no-speech" fires often during natural pauses — not a real error, ignore it.
+        if(e.error !== 'no-speech'){
+          document.getElementById('micStatus').textContent = 'Mic error (' + e.error + ') — tap to retry, or type your answer.';
+        }
+      };
+      recognizer.onend = () => {
+        // Chrome/Edge auto-stop the recognizer after long silences or ~60s even
+        // with continuous:true. If the user hasn't manually stopped, restart it
+        // so long answers don't silently get cut off. The restart itself takes
+        // a moment and produces no results — without re-arming the silence
+        // timer here, that gap could itself look like "silence" and trigger a
+        // premature auto-submit even while the person is still mid-answer.
+        if(listening && !manualStop){
+          try {
+            recognizer.start();
+            armSilenceTimer();
+          } catch(e){ /* already restarting */ }
+        }
+      };
+      recognizer.start();
+
+      // In parallel, record the raw audio so we can send it to /voice/analyze
+      // for real pace/filler/pause metrics (separate from the live transcript).
+      try {
+        micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        audioChunks = [];
+        mediaRecorder = new MediaRecorder(micStream);
+        mediaRecorder.ondataavailable = (e) => { if(e.data.size > 0) audioChunks.push(e.data); };
+        mediaRecorder.start();
+      } catch(e){
+        // Mic permission denied or unsupported — live transcript still works,
+        // we just won't get pace/filler/pause numbers for this answer.
+        mediaRecorder = null;
+      }
+    } else {
+      stopListening();
+    }
+  }
+
+  function stopListening(){
+    manualStop = true;
+    listening = false;
+    if(silenceTimer) clearTimeout(silenceTimer);
+    if(recognizer) recognizer.stop();
+    document.getElementById('micBtn').classList.remove('listening');
+    document.getElementById('micRing').classList.remove('pulse');
+    document.getElementById('caption').innerHTML = escapeHtml(finalTranscript.trim());
+    document.getElementById('submitAnswerBtn').style.display = 'none';
+    state.lastPostureSignal = window.getPostureSummary ? window.getPostureSummary() : null;
+
+    // Submit right away — don't make progress depend on a button or on the
+    // (slower, best-effort) voice-analysis call below finishing first.
+    if(finalTranscript.trim()){
+      document.getElementById('micStatus').textContent = 'Submitting…';
+      submitTypedAnswer();
+    } else {
+      document.getElementById('micStatus').textContent = 'No speech captured — tap the mic to try again.';
+    }
+
+    if(mediaRecorder && mediaRecorder.state !== 'inactive'){
+      document.getElementById('signalNote').textContent = 'Analyzing delivery…';
+      mediaRecorder.onstop = async () => {
+        micStream.getTracks().forEach(t => t.stop());
+        try {
+          const blob = new Blob(audioChunks, { type: 'audio/webm' });
+          const form = new FormData();
+          form.append('file', blob, 'answer.webm');
+          form.append('transcript', finalTranscript.trim());
+          const signal = await api('/voice/analyze', { method:'POST', body: form, isForm: true });
+          state.lastVoiceSignal = signal;
+          const bits = [];
+          if(signal.words_per_minute) bits.push(signal.words_per_minute + ' wpm');
+          if(signal.total_filler_count !== undefined) bits.push(signal.total_filler_count + ' filler word(s)');
+          if(signal.estimated_pause_count !== undefined) bits.push(signal.estimated_pause_count + ' pause(s)');
+          document.getElementById('signalNote').textContent = bits.join(' · ');
+        } catch(e){
+          // Analysis failing shouldn't block answering — just skip the signal.
+          document.getElementById('signalNote').textContent = 'Delivery analysis unavailable (' + e.message + ')';
+        }
+      };
+      mediaRecorder.stop();
+    }
+  }
+
+  function showTypedFallback(){
+    const cap = document.getElementById('caption');
+    cap.innerHTML = '<textarea id="typedAnswer" placeholder="Type your answer…" style="width:100%; min-height:80px; padding:10px; border:1.5px solid var(--line); border-radius:6px; background:var(--paper-card); font-family:inherit; font-size:14px;"></textarea>';
+    document.getElementById('typedAnswer').addEventListener('paste', function(e){
+      e.preventDefault();
+      state.pasteAttempts = (state.pasteAttempts || 0) + 1;
+      flagInterview('paste_attempt');
+    });
+  }
+
+  // Fire-and-forget: a failed flag ping shouldn't interrupt the interview.
+  function flagInterview(kind){
+    if(!state.currentSessionId) return;
+    api('/interview/' + state.currentSessionId + '/flag', { method:'POST', body:{ kind } }).catch(()=>{});
+  }
+
+  document.addEventListener('visibilitychange', function(){
+    if(document.hidden && state.currentSessionId){
+      state.contextSwitches = (state.contextSwitches || 0) + 1;
+      flagInterview('context_switch');
+    }
+  });
+
+  async function submitTypedAnswer(){
+    const typedEl = document.getElementById('typedAnswer');
+    const answer = typedEl ? typedEl.value.trim() : finalTranscript.trim();
+    if(!answer) return;
+    const btn = document.getElementById('submitAnswerBtn');
+    btn.disabled = true;
+    document.getElementById('micStatus').textContent = 'Submitting to the panel…';
+    try {
+      const data = await api('/interview/answer', {
+        method:'POST',
+        body: {
+          session_id: state.currentSessionId,
+          turn_id: state.currentTurnId,
+          answer,
+          voice_wpm: state.lastVoiceSignal ? state.lastVoiceSignal.words_per_minute : null,
+          voice_filler_count: state.lastVoiceSignal ? state.lastVoiceSignal.total_filler_count : null,
+          voice_pause_count: state.lastVoiceSignal ? state.lastVoiceSignal.estimated_pause_count : null,
+          eye_contact_pct: state.lastPostureSignal ? state.lastPostureSignal.eye_contact_pct : null,
+          posture_note: state.lastPostureSignal ? state.lastPostureSignal.posture_note : null,
+        },
+      });
+      state.answeredCount = (state.answeredCount || 0) + 1;
+      applyQuestion(data);
+      document.getElementById('micStatus').textContent = 'Tap to answer';
+    } catch(e){
+      document.getElementById('micStatus').textContent = 'Could not submit: ' + e.message;
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  async function endInterview(){
+    if(!state.currentSessionId){ goTo('dashboard'); return; }
+    if((state.answeredCount || 0) < 3){
+      const ok = confirm('Only ' + (state.answeredCount || 0) + ' of 3 evaluators have heard an answer from you. The rest will be marked "not evaluated" instead of a real verdict. End anyway?');
+      if(!ok) return;
+    }
+    // The mic/recognizer was never actually stopped here before — if you
+    // ended the interview while it was still listening, it kept running in
+    // the background and could still submit/resurrect the old session when
+    // you came back to the Interview screen. Force it off, but skip
+    // stopListening()'s own auto-submit (manualStop=true suppresses that)
+    // since any real unsubmitted text is handled separately just below.
+    if(listening){
+      manualStop = true;
+      listening = false;
+      if(silenceTimer) clearTimeout(silenceTimer);
+      if(recognizer){ try { recognizer.stop(); } catch(e){} }
+      if(mediaRecorder && mediaRecorder.state !== 'inactive'){
+        mediaRecorder.onstop = null; // don't fire the /voice/analyze upload for a discarded answer
+        try { mediaRecorder.stop(); } catch(e){}
+      }
+      if(micStream){ micStream.getTracks().forEach(t => t.stop()); }
+      document.getElementById('micBtn') && document.getElementById('micBtn').classList.remove('listening');
+      document.getElementById('micRing') && document.getElementById('micRing').classList.remove('pulse');
+    }
+    // Only the typed-fallback path can have a genuinely unsubmitted answer sitting
+    // around (normal mic use always auto-submits the moment you stop talking).
+    const typedEl = document.getElementById('typedAnswer');
+    if(typedEl && typedEl.value.trim()){
+      await submitTypedAnswer();
+    }
+    document.getElementById('qLabel').textContent = 'Panel:';
+    document.getElementById('questionText').textContent = 'The panel is deliberating…';
+    state.awaitingVerdict = true;
+    try {
+      const data = await api(`/interview/${state.currentSessionId}/deliberate`, { method:'POST' });
+      renderResults(data);
+      // Fetch per-persona delivery metrics (voice pace, fillers, pauses, eye
+      // contact) separately — deliberate() only returns verdicts/coaching,
+      // not this. Failure here shouldn't hide the verdicts you already got.
+      try {
+        const perf = await api(`/dashboard/session/${data.session_id}/performance`);
+        renderPerformancePanel(perf, 'performancePanel');
+      } catch(e){
+        document.getElementById('performancePanel').innerHTML = '';
+      }
+      state.currentSessionId = null;
+      state.awaitingVerdict = false;
+      goTo('results');
+    } catch(e){
+      // Never leave the user stuck on "deliberating" forever — show a
+      // recoverable message with a retry, instead of a possibly-missed alert().
+      // currentSessionId stays set (Retry needs it), but awaitingVerdict
+      // clears so navigating away and back to Interview properly re-checks
+      // the real state instead of showing this stale message forever.
+      state.awaitingVerdict = false;
+      document.getElementById('qLabel').textContent = 'Panel:';
+      document.getElementById('questionText').innerHTML =
+        'Could not reach a verdict: ' + escapeHtml(e.message) +
+        '<br><button class="pill-btn" style="margin-top:12px;" onclick="endInterview()">Retry</button>';
+    }
+  }
+
+  function renderResults(data){
+    const labelMap = {hr:'HR', tech:'Tech Lead', hm:'Hiring Manager'};
+    const grid = document.getElementById('verdictGrid');
+    grid.innerHTML = data.verdicts.map(v => {
+      const cls = v.verdict === 'strong' ? 'strong' : (v.verdict === 'lean' ? 'lean' : 'discuss');
+      const flag = v.quote_verified
+        ? '<span class="quote-flag ok">Quote verified</span>'
+        : '<span class="quote-flag bad">Quote unverified</span>';
+      return '<div class="card verdict-card '+cls+'">'
+        + '<div class="role">'+(labelMap[v.persona]||v.persona)+'</div>'
+        + '<div class="stamp-word">'+capWord(v.verdict)+' Hire</div>'
+        + '<p>'+escapeHtml(v.reasoning || 'No reasoning returned.')+'</p>'
+        + (v.quote ? '<p style="font-style:italic;">“'+escapeHtml(v.quote)+'”</p>' : '')
+        + flag
+        + '</div>';
+    }).join('');
+    document.getElementById('transcriptBox').textContent = data.transcript || '(empty transcript)';
+
+    const integrityEl = document.getElementById('integrityNote');
+    if(integrityEl){
+      // Now backed by real rows in the database (POST /interview/{id}/flag
+      // actually persists these now) instead of a purely client-side
+      // counter that reset on every page reload.
+      const switches = data.context_switches || 0;
+      const pastes = data.paste_attempts || 0;
+      if(switches || pastes){
+        integrityEl.style.display = 'block';
+        integrityEl.textContent = '⚠ Left the tab ' + switches + ' time(s), attempted to paste an answer ' + pastes + ' time(s) during this session.';
+      } else {
+        integrityEl.style.display = 'none';
+      }
+    }
+
+    const coachingLabel = document.getElementById('coachingLabel');
+    const coachingList = document.getElementById('coachingList');
+    if(data.coaching && data.coaching.length){
+      coachingLabel.style.display = 'block';
+      coachingList.innerHTML = data.coaching.map(c => (
+        '<div class="card" style="padding:18px 20px; margin-bottom:14px;">'
+        + '<div class="q-label" style="margin-bottom:8px;">'+escapeHtml(c.question)+'</div>'
+        + '<div style="font-size:13.5px; color:var(--ink-soft); margin-bottom:10px;"><strong style="color:var(--ink);">You said:</strong> '+escapeHtml(c.your_answer)+'</div>'
+        + '<div style="font-size:13.5px; margin-bottom:8px;"><strong style="color:var(--verify-deep);">Stronger version:</strong> '+escapeHtml(c.stronger_answer)+'</div>'
+        + '<div style="font-size:12px; color:var(--ink-soft); font-style:italic;">'+escapeHtml(c.why_its_stronger)+'</div>'
+        + '</div>'
+      )).join('');
+    } else {
+      coachingLabel.style.display = 'none';
+      coachingList.innerHTML = '';
+    }
+  }
+
+  // Simple CSS-bar chart — one card per evaluator, one bar per delivery
+  // metric. Kept as plain divs (not SVG/canvas) so it's fast, has no
+  // scaling math to get wrong, and matches the rest of the app's styling.
+  function renderPerformancePanel(perf, targetId){
+    const panel = document.getElementById(targetId || 'performancePanel');
+    const sections = (perf && perf.sections) || {};
+    const order = ['hr','tech','hm'];
+    const labelMap = {hr:'HR', tech:'Tech Lead', hm:'Hiring Manager'};
+    const keys = order.filter(k => sections[k]);
+
+    if(!keys.length){
+      panel.innerHTML = '<p class="mono" style="font-size:12px; color:var(--ink-soft);">No voice or camera signal was captured this session — nothing to chart.</p>';
+      return;
+    }
+
+    function bar(label, value, max, suffix){
+      if(value === null || value === undefined) return '';
+      const pct = Math.max(4, Math.min(100, (value/max)*100));
+      return '<div style="margin-bottom:10px;">'
+        + '<div style="display:flex; justify-content:space-between; font-size:11px; color:var(--ink-soft); margin-bottom:3px;">'
+        + '<span>'+label+'</span><span class="mono">'+value+(suffix||'')+'</span></div>'
+        + '<div style="background:var(--line); border-radius:4px; height:8px; overflow:hidden;">'
+        + '<div style="background:var(--verify); height:100%; width:'+pct+'%;"></div></div>'
+        + '</div>';
+    }
+
+    panel.innerHTML = keys.map(k => {
+      const s = sections[k];
+      const verdictCls = s.verdict === 'strong' ? 'strong' : (s.verdict === 'lean' ? 'lean' : 'discuss');
+      return '<div class="card" style="padding:16px 20px; margin-bottom:14px;">'
+        + '<div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:12px;">'
+        + '<div class="role" style="font-weight:600;">'+labelMap[k]+'</div>'
+        + '<span class="stamp-word '+verdictCls+'" style="font-size:11px;">'+capWord(s.verdict)+'</span>'
+        + '</div>'
+        + bar('Speaking pace', s.avg_wpm, 200, ' wpm')
+        + bar('Filler words (total)', s.total_fillers, 20, '')
+        + bar('Pauses (avg per answer)', s.avg_pauses, 10, '')
+        + bar('Eye contact (self-reported)', s.avg_eye_contact_pct, 100, '%')
+        + '<div class="mono" style="font-size:10.5px; color:var(--ink-soft); margin-top:4px;">'+s.turns_answered+' question(s) answered</div>'
+        + (s.delivery_note ? '<div style="font-size:12.5px; color:var(--ink); margin-top:10px; padding-top:10px; border-top:1px solid var(--line);"><strong>Voice &amp; delivery read:</strong> '+escapeHtml(s.delivery_note)+'</div>' : '')
+        + '</div>';
+    }).join('');
+  }
+
+  /* ---- scroll reveal (re-scans on every view change for freshly rendered nodes) ---- */
+  let revealObserver;
+  function initReveal(){
+    if(revealObserver) revealObserver.disconnect();
+    revealObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if(entry.isIntersecting){
+          entry.target.classList.add('in');
+          revealObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold:0.12, rootMargin:'0px 0px -6% 0px' });
+    document.querySelectorAll('.reveal:not(.in)').forEach(el => revealObserver.observe(el));
+  }
+
+  /* init */
+  setAuthTab('signin');
+  initReveal();
+  requestAnimationFrame(drawLandingChart);
+
+  (function restoreSession(){
+    const savedToken = localStorage.getItem('hr_token');
+    const savedName = localStorage.getItem('hr_name');
+    if(savedToken){
+      state.token = savedToken;
+      state.name = savedName || '';
+      state.loggedIn = true;
+      document.getElementById('signOutBtn').style.display = 'inline-block';
+      document.getElementById('signInBtn').style.display = 'none';
+      document.getElementById('heroSignIn').style.display = 'none';
+      // Previously this just flipped the sign-in/out buttons and left the
+      // user staring at the marketing landing page even though they were
+      // already logged in — and any in-progress interview was invisible
+      // until they happened to click Interview. Send them straight to the
+      // dashboard, which now also surfaces a "resume interview" banner.
+      goTo('dashboard');
+    }
+  })();
+</script>
+
+<script type="module">
+  // ===================================================================
+  // Optional camera self-check — pure client-side, no Python/backend
+  // involved. Uses MediaPipe's JS FaceLandmarker to give a rough live
+  // read on whether the candidate is facing the camera (eye-contact
+  // proxy) and how level their head is (posture proxy). Nothing here
+  // is sent anywhere; it's a live mirror, not recorded or scored.
+  // ===================================================================
+  import { FaceLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
+
+  let faceLandmarker = null;
+  let selfViewOn = false;
+  let selfViewStream = null;
+  let rafId = null;
+
+  async function ensureLandmarker(){
+    if(faceLandmarker) return faceLandmarker;
+    const filesetResolver = await FilesetResolver.forVisionTasks(
+      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm"
+    );
+    faceLandmarker = await FaceLandmarker.createFromOptions(filesetResolver, {
+      baseOptions: {
+        modelAssetPath: "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
+        delegate: "GPU"
+      },
+      outputFacialTransformationMatrixes: true,
+      runningMode: "VIDEO",
+      numFaces: 1
+    });
+    return faceLandmarker;
+  }
+
+  window.toggleSelfView = async function(){
+    const box = document.getElementById('selfviewBox');
+    const btn = document.getElementById('selfviewToggle');
+    const readout = document.getElementById('selfviewReadout');
+    const video = document.getElementById('selfviewVideo');
+
+    if(selfViewOn){
+      selfViewOn = false;
+      if(rafId) cancelAnimationFrame(rafId);
+      if(selfViewStream) selfViewStream.getTracks().forEach(t => t.stop());
+      box.classList.remove('show');
+      btn.textContent = 'Enable camera self-check (beta)';
+      readout.textContent = '';
+      return;
+    }
+
+    btn.disabled = true;
+    readout.textContent = 'Loading face model…';
+    try {
+      await ensureLandmarker();
+      selfViewStream = await navigator.mediaDevices.getUserMedia({ video: { width: 320, height: 240 } });
+      video.srcObject = selfViewStream;
+      await video.play();
+      box.classList.add('show');
+      btn.textContent = 'Turn off camera self-check';
+      selfViewOn = true;
+      loop();
+    } catch(e){
+      readout.textContent = 'Could not start camera check: ' + e.message;
+    } finally {
+      btn.disabled = false;
+    }
+  };
+
+  let postureFrames = 0;
+  let postureFacingFrames = 0;
+  let postureLevelFrames = 0;
+
+  window.resetPostureStats = function(){
+    postureFrames = 0;
+    postureFacingFrames = 0;
+    postureLevelFrames = 0;
+  };
+
+  window.getPostureSummary = function(){
+    if(!selfViewOn || postureFrames < 5) return null; // not enough data to say anything honest
+    const eyeContactPct = Math.round((postureFacingFrames / postureFrames) * 100);
+    const levelPct = postureFacingFrames > 0 ? Math.round((postureLevelFrames / postureFrames) * 100) : 0;
+    return {
+      eye_contact_pct: eyeContactPct,
+      posture_note: levelPct >= 70 ? 'head mostly level' : 'notable head tilt during answer',
+    };
+  };
+
+  function loop(){
+    if(!selfViewOn) return;
+    const video = document.getElementById('selfviewVideo');
+    const canvas = document.getElementById('selfviewCanvas');
+    const readout = document.getElementById('selfviewReadout');
+    if(video.videoWidth){
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const result = faceLandmarker.detectForVideo(video, performance.now());
+      if(result.facialTransformationMatrixes && result.facialTransformationMatrixes.length){
+        const m = result.facialTransformationMatrixes[0].data;
+        // Extract approximate yaw/pitch from the rotation part of the 4x4 matrix.
+        const yaw = Math.asin(Math.max(-1, Math.min(1, m[8]))) * (180 / Math.PI);
+        const pitch = Math.asin(Math.max(-1, Math.min(1, -m[9]))) * (180 / Math.PI);
+        const facingCamera = Math.abs(yaw) < 12 && Math.abs(pitch) < 12;
+        const headLevel = Math.abs(pitch) < 10;
+        const postureNote = pitch < -10 ? 'head tilted down (check posture)' : (pitch > 10 ? 'head tilted up' : 'head level');
+        readout.textContent = (facingCamera ? 'Eye contact: facing camera' : 'Eye contact: looking away') + ' · ' + postureNote;
+
+        // Only count this frame toward the answer's stats while actively answering —
+        // otherwise idle time between questions would skew the numbers.
+        if(typeof listening !== 'undefined' && listening){
+          postureFrames++;
+          if(facingCamera) postureFacingFrames++;
+          if(headLevel) postureLevelFrames++;
+        }
+      } else {
+        readout.textContent = 'No face detected — center yourself in frame';
+      }
+    }
+    rafId = requestAnimationFrame(loop);
+  }
+</script>
+
+</body>
+</html>

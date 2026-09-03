@@ -38,6 +38,10 @@ JWT_SECRET=any_long_random_string
 DATABASE_URL=sqlite:///./hiring_room.db
 GOOGLE_CLIENT_ID= # optional — leave blank to disable Google Sign-In
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> ea4731e (Update README)
 ## 3. Run the backend
 
 ```bash
@@ -98,5 +102,4 @@ config.py — reads .env
 - Every verdict's `quote` field comes with a `quote_verified` boolean — this
   is checked against the real interview transcript in plain Python, not
   trusted from the AI's output.
-
 

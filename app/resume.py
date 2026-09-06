@@ -104,13 +104,25 @@ def naive_requirement_split(jd_text: str) -> list:
 @router.post("/analyze", response_model=ResumeAnalyzeResponse)
 def analyze_resume(
     jd_text: str = Form(...),
-    file: UploadFile = File(...),
+    file: Optional[UploadFile] = File(None),
+    resume_text: Optional[str] = Form(None),
     session: Session = Depends(get_session),
     user: User = Depends(get_current_user),
 ):
-    raw = file.file.read()
-    resume_text = extract_text(file.filename, raw)
-    if not resume_text.strip():
+    # Either a file OR pasted resume text is accepted — not both required.
+    # The frontend now offers a "paste your resume" tab as an alternative
+    # to uploading a PDF/DOCX for people who don't have a file handy.
+    if file is not None:
+        raw = file.file.read()
+        extracted_text = extract_text(file.filename, raw)
+        filename = file.filename
+    elif resume_text and resume_text.strip():
+        extracted_text = resume_text
+        filename = "Pasted resume text"
+    else:
+        raise HTTPException(status_code=400, detail="Provide a resume file or paste your resume text")
+
+    if not extracted_text.strip():
         raise HTTPException(status_code=400, detail="Could not extract any text from that file")
 
     embedder = get_embedder()
@@ -118,7 +130,7 @@ def analyze_resume(
     if not requirements:
         requirements = [jd_text[:200]]
 
-    resume_emb = embedder.encode([resume_text])[0]
+    resume_emb = embedder.encode([extracted_text])[0]
     req_embs = embedder.encode(requirements)
 
     import numpy as np
@@ -134,7 +146,7 @@ def analyze_resume(
 
     record = ResumeAnalysis(
         user_id=user.id,
-        filename=file.filename,
+        filename=filename,
         match_score=round(overall * 100, 1),
         matched_points=json.dumps(matched),
         gap_points=json.dumps(gaps),

@@ -35,6 +35,11 @@ class InterviewSession(SQLModel, table=True):
     resume_analysis_id: Optional[int] = Field(default=None, index=True)  # which resume this session used, if any
     transcript: str = ""     # accumulated Q&A as plain text, used for quote verification
     status: str = "in_progress"  # in_progress | completed
+    # NEW: which difficulty the candidate picked (easy | moderate | difficult) and which
+    # UI language responses should come back in (en | hi | kn). Both were previously
+    # silently dropped because this table/schema never declared them.
+    difficulty: str = "moderate"
+    language: str = "en"
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
@@ -112,6 +117,10 @@ class ResumeAnalyzeResponse(BaseModel):
 class StartInterviewRequest(BaseModel):
     role_title: str = "Untitled Role"
     resume_analysis_id: Optional[int] = None
+    # These two existed on the frontend already but were never declared here,
+    # so FastAPI silently dropped them before they ever reached panel.py.
+    difficulty: str = "moderate"      # easy | moderate | difficult
+    language: str = "en"              # en | hi | kn
 
 
 class NextQuestionResponse(BaseModel):
@@ -152,11 +161,25 @@ class VerdictItem(BaseModel):
     quote_verified: bool
 
 
+class StarDetected(BaseModel):
+    s: bool = False
+    t: bool = False
+    a: bool = False
+    r: bool = False
+
+
 class CoachingItem(BaseModel):
     question: str
     your_answer: str
     stronger_answer: str
     why_its_stronger: str
+    # NEW: score (0-100) of the candidate's OWN answer against the ideal/"star"
+    # answer, plus which individual STAR components (Situation/Task/Action/
+    # Result) were actually detected in what the candidate said. For technical
+    # (non-behavioral) questions the model is instructed to leave star_detected
+    # all-false and score completeness/correctness instead.
+    score: int = 0
+    star_detected: StarDetected = StarDetected()
 
 
 class DeliberationResponse(BaseModel):
@@ -166,3 +189,32 @@ class DeliberationResponse(BaseModel):
     coaching: List[CoachingItem] = []
     context_switches: int = 0
     paste_attempts: int = 0
+
+
+# ---------- DSA PRACTICE (new) ----------
+
+class DsaQuestionOut(BaseModel):
+    id: str
+    title: str
+    difficulty: str          # easy | medium | hard
+    topic: str
+    prompt: str               # problem statement, in the requested language
+    examples: List[str] = []  # sample input/output lines, in the requested language
+
+
+class DsaSubmitRequest(BaseModel):
+    question_id: str
+    prog_language: str = "python"   # python | java | cpp | javascript | c
+    code: str
+    debug_mode: bool = False
+    language: str = "en"            # en | hi | kn — UI/response language
+
+
+class DsaSubmitResponse(BaseModel):
+    question_id: str
+    debug_mode: bool
+    score: int = 0                  # 0-100, only meaningful when debug_mode is False
+    verdict: str = ""               # short verdict line, in the requested language
+    feedback: str = ""              # fuller explanation, in the requested language
+    hint: Optional[str] = None      # debug-mode only: a nudge, not the answer
+    reference_approach: Optional[str] = None  # short description of an ideal approach

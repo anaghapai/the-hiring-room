@@ -70,6 +70,8 @@
   .pill-btn:hover{ background:var(--ink); color:var(--paper); transform:translateY(-2px); }
   .pill-btn.ghost{ border-color:var(--line); color:var(--ink-soft); }
   .diff-opt.on{ background:var(--ink); color:var(--paper); }
+  .prog-opt.on{ background:var(--ink); color:var(--paper); }
+  .switch:disabled, select:disabled{ opacity:0.5; cursor:not-allowed; }
 
   /* ===== view container ===== */
   .app-shell{ min-height:70vh; }
@@ -300,6 +302,27 @@
   .dock-item{ font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:0.05em; white-space:nowrap; color:var(--paper); opacity:0.6; background:rgba(233,227,210,0.08); border:none; border-radius:8px; padding:8px 13px; transition:transform 0.18s cubic-bezier(.2,.8,.3,1), opacity 0.18s, background 0.18s; }
   .dock-item:hover{ opacity:1; background:var(--stamp); transform:translateY(-6px) scale(1.1); }
   .dock-item.on{ opacity:1; background:var(--verify); }
+
+  /* ===== i18n language switcher ===== */
+  .lang-switch{ display:flex; gap:2px; border:1px solid var(--line); border-radius:999px; padding:2px; }
+  .lang-btn{ font-family:'IBM Plex Mono', monospace; font-size:10.5px; letter-spacing:0.03em; border:none; background:transparent; color:var(--ink-soft); padding:5px 9px; border-radius:999px; transition:background 0.18s, color 0.18s; }
+  .lang-btn.on{ background:var(--ink); color:var(--paper); }
+  .lang-btn:disabled{ opacity:0.4; cursor:not-allowed; }
+
+  /* ===== DSA practice page ===== */
+  .prog-lang-picker{ display:flex; gap:8px; flex-wrap:wrap; }
+  .code-editor{ width:100%; min-height:260px; padding:14px; border:1.5px solid var(--line); border-radius:6px; background:#1c1a16; color:#e9e3d2; font-family:'IBM Plex Mono', monospace; font-size:13px; line-height:1.55; resize:vertical; }
+  .code-editor:focus{ outline:none; border-color:var(--stamp); }
+  .debug-toggle-row{ display:flex; align-items:center; gap:10px; margin:12px 0; }
+  .switch{ position:relative; width:40px; height:22px; border-radius:999px; background:var(--line); border:none; transition:background 0.18s; flex-shrink:0; }
+  .switch.on{ background:var(--stamp); }
+  .switch::after{ content:''; position:absolute; top:2px; left:2px; width:18px; height:18px; border-radius:50%; background:var(--paper); transition:transform 0.18s; }
+  .switch.on::after{ transform:translateX(18px); }
+  .score-ring-row{ display:flex; align-items:center; gap:16px; margin-bottom:10px; }
+  .score-num{ font-family:'Fraunces', serif; font-size:32px; font-weight:600; }
+  .star-chip-row{ display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; }
+  .star-chip{ font-family:'IBM Plex Mono', monospace; font-size:10.5px; padding:4px 9px; border-radius:999px; border:1.5px solid var(--line); color:var(--ink-soft); }
+  .star-chip.hit{ border-color:var(--verify); color:var(--verify-deep); background:rgba(44,100,89,0.08); }
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -311,15 +334,21 @@
     <span class="case">CASE 01 · GIRL GEEKS 2026</span>
   </div>
   <nav class="main-nav" id="mainNav">
-    <button class="nav-link" data-view="landing" onclick="goTo('landing')">Home</button>
-    <button class="nav-link" data-view="dashboard" onclick="goTo('dashboard')">Dashboard</button>
-    <button class="nav-link" data-view="upload" onclick="goTo('upload')">Upload</button>
-    <button class="nav-link" data-view="interview" onclick="goTo('interview')">Interview</button>
-    <button class="nav-link" data-view="results" onclick="goTo('results')">Verdict</button>
+    <button class="nav-link" data-view="landing" data-i18n="nav_home" onclick="goTo('landing')">Home</button>
+    <button class="nav-link" data-view="dashboard" data-i18n="nav_dashboard" onclick="goTo('dashboard')">Dashboard</button>
+    <button class="nav-link" data-view="upload" data-i18n="nav_upload" onclick="goTo('upload')">Upload</button>
+    <button class="nav-link" data-view="interview" data-i18n="nav_interview" onclick="goTo('interview')">Interview</button>
+    <button class="nav-link" data-view="dsa" data-i18n="nav_practice" onclick="goTo('dsa')">Practice</button>
+    <button class="nav-link" data-view="results" data-i18n="nav_verdict" onclick="goTo('results')">Verdict</button>
   </nav>
   <div class="header-right">
-    <button class="pill-btn" id="signInBtn" onclick="goTo('auth')">Sign In</button>
-    <button class="pill-btn ghost" style="display:none" id="signOutBtn" onclick="signOut()">Sign out</button>
+    <div class="lang-switch" id="langSwitch">
+      <button class="lang-btn" data-lang="en" onclick="setLanguage('en')">EN</button>
+      <button class="lang-btn" data-lang="hi" onclick="setLanguage('hi')">हिं</button>
+      <button class="lang-btn" data-lang="kn" onclick="setLanguage('kn')">ಕನ್</button>
+    </div>
+    <button class="pill-btn" id="signInBtn" data-i18n="sign_in" onclick="goTo('auth')">Sign In</button>
+    <button class="pill-btn ghost" style="display:none" id="signOutBtn" data-i18n="sign_out" onclick="signOut()">Sign out</button>
   </div>
 </header>
 
@@ -328,56 +357,57 @@
   <!-- ===== LANDING (public) ===== -->
   <section class="view active" id="view-landing">
     <div class="hero">
-      <span class="stamp-badge">Panel Reviewed</span>
-      <h1>THE HIRING ROOM</h1>
-      <p class="sub">Not a score. A panel's reasoning.</p>
+      <span class="stamp-badge" data-i18n="hero_badge">Panel Reviewed</span>
+      <h1 data-i18n="hero_title">THE HIRING ROOM</h1>
+      <p class="sub" data-i18n="hero_sub">Not a score. A panel's reasoning.</p>
       <div class="hero-ctas">
-        <button class="cta-btn" id="heroGetStarted" onclick="goTo(state.loggedIn ? 'dashboard' : 'auth')">Get Started</button>
-        <button class="pill-btn" id="heroSignIn" onclick="goTo('auth')">Sign In</button>
+        <button class="cta-btn" id="heroGetStarted" data-i18n="hero_get_started" onclick="goTo(state.loggedIn ? 'dashboard' : 'auth')">Get Started</button>
+        <button class="pill-btn" id="heroSignIn" data-i18n="sign_in" onclick="goTo('auth')">Sign In</button>
       </div>
     </div>
 
-    <div class="exhibit-tab reveal"><span class="tag">Exhibit A</span><span class="rule"></span></div>
-    <p class="lede reveal">Every existing resume and interview tool hands back <em>a single opaque score</em> — never the reasoning behind it. A real hiring decision has never worked that way.</p>
+    <div class="exhibit-tab reveal"><span class="tag" data-i18n="exhibit_a">Exhibit A</span><span class="rule"></span></div>
+    <p class="lede reveal" data-i18n="lede_a">Every existing resume and interview tool hands back <em>a single opaque score</em> — never the reasoning behind it. A real hiring decision has never worked that way.</p>
     <div class="compare">
       <div class="doc today reveal">
-        <div class="doc-head">On file today</div>
-        <h3>The Score</h3>
-        <ul><li>A single opaque score</li><li>No insight into the why</li><li>One evaluator's lens only</li></ul>
+        <div class="doc-head" data-i18n="doc_today_label">On file today</div>
+        <h3 data-i18n="doc_today_title">The Score</h3>
+        <ul><li data-i18n="doc_today_li1">A single opaque score</li><li data-i18n="doc_today_li2">No insight into the why</li><li data-i18n="doc_today_li3">One evaluator's lens only</li></ul>
       </div>
       <div class="doc panel reveal">
-        <div class="doc-head">This case's approach</div>
-        <h3>The Panel</h3>
-        <ul><li>Three-persona panel debate</li><li>Visible disagreement, on record</li><li>Specific, actionable gaps</li></ul>
+        <div class="doc-head" data-i18n="doc_panel_label">This case's approach</div>
+        <h3 data-i18n="doc_panel_title">The Panel</h3>
+        <ul><li data-i18n="doc_panel_li1">Three-persona panel debate</li><li data-i18n="doc_panel_li2">Visible disagreement, on record</li><li data-i18n="doc_panel_li3">Specific, actionable gaps</li></ul>
       </div>
     </div>
 
-    <div class="exhibit-tab reveal"><span class="tag">Exhibit B</span><span class="rule"></span></div>
+    <div class="exhibit-tab reveal"><span class="tag" data-i18n="exhibit_b">Exhibit B</span><span class="rule"></span></div>
     <div class="card chart-card reveal">
       <div class="chart-head">
-        <h3>Candidates improve session over session</h3>
-        <span class="chart-note">Sample cohort — 6 mock sessions</span>
+        <h3 data-i18n="chart_title">Candidates improve session over session</h3>
+        <span class="chart-note" data-i18n="chart_note">Sample cohort — 6 mock sessions</span>
       </div>
-      <svg id="landingChart" viewBox="0 0 560 220" style="width:100%; height:auto; overflow:visible;"></svg>
+      <svg id="landingChart" width="560" height="220" viewBox="0 0 560 220" preserveAspectRatio="xMidYMid meet" style="width:100%; height:auto; overflow:visible; display:block; min-height:180px;"></svg>
       <div class="chart-legend">
-        <span><i class="sw" style="background:var(--ink-soft)"></i>Score-only tool (self-reported)</span>
-        <span><i class="sw" style="background:var(--verify)"></i>Panel deliberation (this app)</span>
+        <span><i class="sw" style="background:var(--ink-soft)"></i><span data-i18n="legend_score_tool">Score-only tool (self-reported)</span></span>
+        <span><i class="sw" style="background:var(--verify)"></i><span data-i18n="legend_panel_tool">Panel deliberation (this app)</span></span>
       </div>
-      <p class="chart-caption">Candidates who see <em style="color:var(--ink)">why</em> an answer fell short revise it — candidates who only see a number tend to repeat the same answer.</p>
+      <p class="chart-caption" data-i18n="chart_caption">Candidates who see <em style="color:var(--ink)">why</em> an answer fell short revise it — candidates who only see a number tend to repeat the same answer.</p>
     </div>
 
-    <div class="exhibit-tab reveal"><span class="tag">Exhibit C</span><span class="rule"></span></div>
-    <p class="lede reveal">What's actually in the file.</p>
+    <div class="exhibit-tab reveal"><span class="tag" data-i18n="exhibit_c">Exhibit C</span><span class="rule"></span></div>
+    <p class="lede reveal" data-i18n="lede_c">What's actually in the file.</p>
     <div class="bento">
-      <div class="card f1 reveal"><div class="num">01</div><h4>Three-Persona Panel</h4><p>HR, Tech Lead &amp; Hiring Manager each interview from their own lens.</p></div>
-      <div class="card f2 reveal"><div class="num">02</div><h4>Visible Deliberation</h4><p>The panel debates the candidate afterward — disagreements included.</p></div>
-      <div class="card f3 reveal"><div class="num">03</div><h4>JD-Matched Resume</h4><p>Semantic match, ATS-parse flags, per-requirement gaps.</p></div>
-      <div class="card f4 reveal"><div class="num">04</div><h4>Interviewer Memory</h4><p>The panel calls back to earlier answers, like a real interviewer.</p></div>
-      <div class="card f5 reveal"><div class="num">05</div><h4>STAR Detection</h4><p>Labels Situation / Task / Action / Result in every answer.</p></div>
+      <div class="card f1 reveal"><div class="num">01</div><h4 data-i18n="bento1_title">Three-Persona Panel</h4><p data-i18n="bento1_desc">HR, Tech Lead &amp; Hiring Manager each interview from their own lens.</p></div>
+      <div class="card f2 reveal"><div class="num">02</div><h4 data-i18n="bento2_title">Visible Deliberation</h4><p data-i18n="bento2_desc">The panel debates the candidate afterward — disagreements included.</p></div>
+      <div class="card f3 reveal"><div class="num">03</div><h4 data-i18n="bento3_title">JD-Matched Resume</h4><p data-i18n="bento3_desc">Semantic match, ATS-parse flags, per-requirement gaps.</p></div>
+      <div class="card f4 reveal"><div class="num">04</div><h4 data-i18n="bento4_title">Interviewer Memory</h4><p data-i18n="bento4_desc">The panel calls back to earlier answers, like a real interviewer.</p></div>
+      <div class="card f5 reveal"><div class="num">05</div><h4 data-i18n="bento5_title">STAR Detection</h4><p data-i18n="bento5_desc">Labels Situation / Task / Action / Result in every answer.</p></div>
+      <div class="card f6 reveal"><div class="num">06</div><h4 data-i18n="bento6_title">DSA Practice</h4><p data-i18n="bento6_desc">Pick a difficulty, write code, and get scored with debug-mode hints.</p></div>
     </div>
 
     <div class="cta-row reveal" style="text-align:center; margin-top:40px;">
-      <button class="cta-btn" onclick="goTo(state.loggedIn ? 'dashboard' : 'auth')">Enter the Room</button>
+      <button class="cta-btn" data-i18n="enter_room" onclick="goTo(state.loggedIn ? 'dashboard' : 'auth')">Enter the Room</button>
     </div>
   </section>
 
@@ -386,34 +416,34 @@
     <div class="auth-wrap">
       <div class="auth-card">
         <div class="auth-tabs">
-          <button class="auth-tab active" id="tabSignin" onclick="setAuthTab('signin')">Sign In</button>
-          <button class="auth-tab" id="tabRegister" onclick="setAuthTab('register')">Register</button>
+          <button class="auth-tab active" id="tabSignin" data-i18n="auth_signin_tab" onclick="setAuthTab('signin')">Sign In</button>
+          <button class="auth-tab" id="tabRegister" data-i18n="auth_register_tab" onclick="setAuthTab('register')">Register</button>
         </div>
 
         <div class="field" id="fieldName" style="display:none">
-          <label>Full name</label>
+          <label data-i18n="field_full_name">Full name</label>
           <input type="text" id="inName" placeholder="Jane Candidate">
         </div>
         <div class="field">
-          <label>Email</label>
+          <label data-i18n="field_email">Email</label>
           <input type="email" id="inEmail" placeholder="you@email.com">
         </div>
         <div class="field">
-          <label>Password</label>
+          <label data-i18n="field_password">Password</label>
           <input type="password" id="inPass" placeholder="••••••••">
         </div>
-        <button class="auth-submit" id="authSubmit" onclick="submitAuth()">Enter the Room</button>
-        <div class="verify-flash" id="verifyFlash"><span class="dot"></span> Contacting the panel…</div>
+        <button class="auth-submit" id="authSubmit" data-i18n="enter_room" onclick="submitAuth()">Enter the Room</button>
+        <div class="verify-flash" id="verifyFlash"><span class="dot"></span> <span data-i18n="verify_flash">Contacting the panel…</span></div>
         <div class="auth-error" id="authError"></div>
 
         <div style="display:flex; align-items:center; gap:10px; margin:18px 0;">
           <div style="flex:1; height:1px; background:var(--line);"></div>
-          <span class="mono" style="font-size:11px; color:var(--ink-soft);">or</span>
+          <span class="mono" style="font-size:11px; color:var(--ink-soft);" data-i18n="auth_or">or</span>
           <div style="flex:1; height:1px; background:var(--line);"></div>
         </div>
         <div id="googleSignInDiv" style="display:flex; justify-content:center;"></div>
 
-        <p class="auth-note">Your case file stays private — only your panel sees it.</p>
+        <p class="auth-note" data-i18n="auth_note">Your case file stays private — only your panel sees it.</p>
       </div>
     </div>
   </section>
@@ -422,40 +452,43 @@
   <section class="view" id="view-dashboard">
     <div class="dash-head">
       <div>
-        <h2>Welcome back<span id="dashName"></span>.</h2>
-        <p class="mono" style="font-size:12px; color:var(--ink-soft); margin-top:4px;" id="dashSubline">Your case file, at a glance.</p>
+        <h2><span data-i18n="dash_welcome">Welcome back</span><span id="dashName"></span>.</h2>
+        <p class="mono" style="font-size:12px; color:var(--ink-soft); margin-top:4px;" id="dashSubline" data-i18n="dash_subline">Your case file, at a glance.</p>
       </div>
-      <button class="cta-btn" onclick="goTo('upload')">+ New Session</button>
+      <button class="cta-btn" data-i18n="dash_new_session" onclick="goTo('upload')">+ New Session</button>
     </div>
 
     <div class="card" id="resumeInterviewBanner" style="display:none; margin-bottom:20px; border-color:var(--rust);">
       <div style="display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap;">
         <div>
-          <div class="section-label" style="margin-bottom:4px;">Interview in progress</div>
+          <div class="section-label" style="margin-bottom:4px;" data-i18n="resume_in_progress">Interview in progress</div>
           <div id="resumeInterviewRole" style="font-weight:600;"></div>
         </div>
-        <button class="pill-btn" onclick="goTo('interview')">Resume interview →</button>
+        <button class="pill-btn" data-i18n="resume_button" onclick="goTo('interview')">Resume interview →</button>
       </div>
     </div>
 
     <div class="stat-row stagger" id="statRow">
-      <div class="card stat-card"><div class="label">Sessions Completed</div><div class="value" id="statSessions">0</div></div>
-      <div class="card stat-card"><div class="label">Resumes Analyzed</div><div class="value verify" id="statResumes">0</div></div>
-      <div class="card stat-card"><div class="label">Latest Verdict</div><div class="value gold" id="statVerdict">—</div></div>
+      <div class="card stat-card"><div class="label" data-i18n="stat_sessions">Sessions Completed</div><div class="value" id="statSessions">0</div></div>
+      <div class="card stat-card"><div class="label" data-i18n="stat_resumes">Resumes Analyzed</div><div class="value verify" id="statResumes">0</div></div>
+      <div class="card stat-card"><div class="label" data-i18n="stat_verdict">Latest Verdict</div><div class="value gold" id="statVerdict">—</div></div>
     </div>
 
-    <div class="section-label" id="growthLabel" style="display:none; margin-top:6px;">Verdict trend over time</div>
+    <div class="section-label" id="growthLabel" style="display:none; margin-top:6px;" data-i18n="growth_label">Verdict trend over time</div>
     <div class="card chart-card" id="growthChartCard" style="display:none; margin-bottom:30px;">
-      <svg id="growthChart" viewBox="0 0 560 160" style="width:100%; height:auto;"></svg>
-      <p class="chart-caption">Strong = 3, Lean = 2, Discuss = 1 per session, oldest to most recent.</p>
+      <svg id="growthChart" width="560" height="160" viewBox="0 0 560 160" preserveAspectRatio="xMidYMid meet" style="width:100%; height:auto; display:block; min-height:130px;"></svg>
+      <p class="chart-caption" data-i18n="growth_caption">Strong = 3, Lean = 2, Discuss = 1 per session, oldest to most recent.</p>
     </div>
 
-    <div class="section-label" style="margin-top:30px;">How You're Doing Overall</div>
-    <p class="mono" style="font-size:11px; color:var(--ink-soft); margin:-6px 0 12px;" id="overviewSummary">Loading…</p>
+    <div class="section-label" style="margin-top:30px;" data-i18n="overview_title">How You're Doing Overall</div>
+    <p class="mono" style="font-size:11px; color:var(--ink-soft); margin:-6px 0 12px;" id="overviewSummary" data-i18n="overview_loading">Loading…</p>
     <div id="overviewPanel" style="margin-bottom:30px;"></div>
 
-    <div class="section-label" style="margin-top:30px;">Session History</div>
-    <p class="mono" style="font-size:11px; color:var(--ink-soft); margin:-6px 0 12px;">Click a session to review its full transcript and verdicts.</p>
+    <div class="section-label" style="margin-top:30px; display:flex; justify-content:space-between; align-items:baseline;">
+      <span data-i18n="session_history_title">Session History</span>
+      <button class="pill-btn ghost" style="font-size:11px;" data-i18n="download_progress_report" onclick="downloadProgressReport()">Download Progress Report</button>
+    </div>
+    <p class="mono" style="font-size:11px; color:var(--ink-soft); margin:-6px 0 12px;" data-i18n="session_history_sub">Click a session to review its full transcript and verdicts.</p>
     <div id="sessionList"></div>
   </section>
 
@@ -464,12 +497,12 @@
     <div class="card" style="max-width:720px; margin:0 auto; padding:26px;">
       <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:16px;">
         <h3 id="sessionDetailTitle">Session</h3>
-        <button class="pill-btn ghost" onclick="closeSessionDetail()">Close</button>
+        <button class="pill-btn ghost" data-i18n="close_label" onclick="closeSessionDetail()">Close</button>
       </div>
       <div id="sessionDetailVerdicts" class="verdict-grid" style="margin-bottom:20px;"></div>
-      <div class="section-label">Performance by Evaluator</div>
+      <div class="section-label" data-i18n="perf_by_evaluator">Performance by Evaluator</div>
       <div id="sessionDetailPerformance" style="margin-bottom:20px;"></div>
-      <div class="section-label">Transcript</div>
+      <div class="section-label" data-i18n="transcript_label">Transcript</div>
       <div class="transcript" id="sessionDetailTranscript">—</div>
     </div>
   </div>
@@ -477,102 +510,129 @@
   <!-- ===== UPLOAD ===== -->
   <section class="view" id="view-upload">
     <div style="display:flex; justify-content:space-between; align-items:baseline;">
-      <h2 style="margin-bottom:6px;">Submit your resume</h2>
-      <a href="#" onclick="goTo('dashboard'); return false;" class="mono" style="font-size:12px; color:var(--ink-soft); text-decoration:underline;">← Back to Dashboard</a>
+      <h2 style="margin-bottom:6px;" data-i18n="upload_title">Submit your resume</h2>
+      <a href="#" onclick="goTo('dashboard'); return false;" class="mono" style="font-size:12px; color:var(--ink-soft); text-decoration:underline;" data-i18n="back_to_dashboard">← Back to Dashboard</a>
     </div>
-    <p class="mono" style="font-size:12.5px; color:var(--ink-soft); margin-bottom:24px;">Exhibit — matched against the job description before the panel convenes.</p>
+    <p class="mono" style="font-size:12.5px; color:var(--ink-soft); margin-bottom:24px;" data-i18n="upload_sub">Exhibit — matched against the job description before the panel convenes.</p>
 
     <div class="card" id="reuseResumeCard" style="display:none; margin-bottom:20px; padding:16px 20px;">
       <div style="display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap;">
         <div>
-          <div class="section-label" style="margin-bottom:4px;">Resume on file</div>
+          <div class="section-label" style="margin-bottom:4px;" data-i18n="resume_on_file">Resume on file</div>
           <div class="mono" style="font-size:13px;">
             <strong id="reuseResumeName" style="color:var(--ink)">—</strong>
-            <span style="color:var(--ink-soft)"> · match <span id="reuseResumeScore">—</span>%</span>
+            <span style="color:var(--ink-soft)"> · <span data-i18n="match_word">match</span> <span id="reuseResumeScore">—</span>%</span>
           </div>
         </div>
         <div style="display:flex; gap:10px;">
-          <button class="pill-btn" onclick="continueWithLastResume()">Continue with this resume</button>
-          <button class="pill-btn ghost" onclick="document.getElementById('reuseResumeCard').style.display='none'">Upload a different one</button>
+          <button class="pill-btn" data-i18n="continue_resume" onclick="continueWithLastResume()">Continue with this resume</button>
+          <button class="pill-btn ghost" data-i18n="upload_different" onclick="document.getElementById('reuseResumeCard').style.display='none'">Upload a different one</button>
         </div>
       </div>
     </div>
 
     <div class="field-block" id="jdFieldBlock">
-      <label>Job description</label>
-      <textarea id="jdText" placeholder="Paste the job description here — one requirement per line works best."></textarea>
+      <label data-i18n="jd_label">Job description</label>
+      <textarea id="jdText" data-i18n-ph="jd_placeholder" placeholder="Paste the job description here — one requirement per line works best."></textarea>
     </div>
 
     <div class="dropzone" id="dropzone">
       <div class="dz-icon">⌘</div>
-      <p><strong style="color:var(--ink)">Drop your resume here</strong>, or click to browse</p>
-      <p style="font-size:12px;">PDF or DOCX, up to 5MB</p>
+      <p><strong style="color:var(--ink)" data-i18n="dropzone_drop">Drop your resume here</strong>, <span data-i18n="dropzone_browse">or click to browse</span></p>
+      <p style="font-size:12px;" data-i18n="dropzone_types">PDF or DOCX, up to 5MB</p>
       <input type="file" id="fileInput" style="display:none" accept=".pdf,.docx">
     </div>
     <div class="file-chip" id="fileChip"><span class="dot"></span><span class="name" id="fileName">resume.pdf</span></div>
+
+    <div style="margin:10px 0;">
+      <a href="#" onclick="toggleResumeMode(); return false;" class="mono" id="resumeModeToggleLink" style="font-size:12px; color:var(--ink-soft); text-decoration:underline;" data-i18n="paste_resume_instead">Or paste your resume text instead →</a>
+    </div>
+    <div class="field-block" id="resumePasteBlock" style="display:none;">
+      <label data-i18n="resume_text_label">Resume text</label>
+      <textarea id="resumePasteText" data-i18n-ph="resume_text_placeholder" placeholder="Paste your resume text here…" style="min-height:160px;"></textarea>
+      <button class="pill-btn" style="margin-top:8px;" data-i18n="analyze_pasted" onclick="analyzePastedResume()">Analyze pasted resume</button>
+    </div>
     <div style="margin:-8px 0 12px;">
-      <a href="#" onclick="skipResumeUpload(); return false;" class="mono" style="font-size:12px; color:var(--ink-soft); text-decoration:underline;">Skip resume, start interview anyway →</a>
+      <a href="#" onclick="skipResumeUpload(); return false;" class="mono" style="font-size:12px; color:var(--ink-soft); text-decoration:underline;" data-i18n="skip_resume">Skip resume, start interview anyway →</a>
     </div>
     <div class="progress-wrap" id="progressWrap">
-      <div class="progress-label" id="progressLabel">Running semantic JD-match…</div>
+      <div class="progress-label" id="progressLabel" data-i18n="progress_label">Running semantic JD-match…</div>
       <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
     </div>
     <div class="card match-card" id="matchCard">
-      <div class="section-label" style="margin-bottom:14px;">Gap Analysis</div>
-      <div class="row"><span>Semantic JD match</span><strong id="matchScoreOut">—</strong></div>
+      <div class="section-label" style="margin-bottom:14px;" data-i18n="gap_analysis">Gap Analysis</div>
+      <div class="row"><span data-i18n="semantic_match">Semantic JD match</span><strong id="matchScoreOut">—</strong></div>
       <div class="row" style="display:block;">
         <div style="background:var(--line); border-radius:4px; height:8px; overflow:hidden; margin-bottom:6px;">
           <div id="matchFill" style="background:linear-gradient(90deg, var(--stamp), var(--gold)); height:100%; width:0%; transition:width .4s ease;"></div>
         </div>
         <div class="mono" id="matchVerdict" style="font-size:12px; font-weight:600;"></div>
       </div>
-      <div class="row" style="display:block;"><span>Matched points</span><ul id="matchedList"></ul></div>
-      <div class="row" style="display:block;"><span>Gaps</span><ul id="gapList"></ul></div>
+      <div class="row" style="display:block;"><span data-i18n="matched_points">Matched points</span><ul id="matchedList"></ul></div>
+      <div class="row" style="display:block;"><span data-i18n="gaps_label">Gaps</span><ul id="gapList"></ul></div>
     </div>
     <div id="uploadDifferentLink" style="display:none; margin:-8px 0 12px;">
-      <a href="#" onclick="useDifferentResumeInstead(); return false;" class="mono" style="font-size:12px; color:var(--ink-soft); text-decoration:underline;">Upload a different resume instead</a>
+      <a href="#" onclick="useDifferentResumeInstead(); return false;" class="mono" style="font-size:12px; color:var(--ink-soft); text-decoration:underline;" data-i18n="upload_different_instead">Upload a different resume instead</a>
     </div>
     <div class="cta-row" id="beginRow" style="display:none;">
       <div class="role-field field-block" style="max-width:100%">
-        <label>Role you're interviewing for</label>
-        <input type="text" id="roleTitleInput" placeholder="e.g. Backend Engineer" style="width:100%; padding:10px 12px; border:1.5px solid var(--line); border-radius:6px; background:var(--paper-card); font-size:14px;">
+        <label data-i18n="role_label">Role you're interviewing for</label>
+        <input type="text" id="roleTitleInput" data-i18n-ph="role_placeholder" placeholder="e.g. Backend Engineer" style="width:100%; padding:10px 12px; border:1.5px solid var(--line); border-radius:6px; background:var(--paper-card); font-size:14px;">
       </div>
       <div class="role-field field-block" style="max-width:100%">
-        <label>Difficulty</label>
+        <label data-i18n="difficulty_label">Difficulty</label>
         <div id="difficultyPicker" style="display:flex; gap:8px;">
-          <button type="button" class="pill-btn diff-opt" data-diff="easy" onclick="setDifficulty('easy')">Easy</button>
-          <button type="button" class="pill-btn diff-opt on" data-diff="moderate" onclick="setDifficulty('moderate')">Moderate</button>
-          <button type="button" class="pill-btn diff-opt" data-diff="difficult" onclick="setDifficulty('difficult')">Difficult</button>
+          <button type="button" class="pill-btn diff-opt" data-diff="easy" data-i18n="diff_easy" onclick="setDifficulty('easy')">Easy</button>
+          <button type="button" class="pill-btn diff-opt on" data-diff="moderate" data-i18n="diff_moderate" onclick="setDifficulty('moderate')">Moderate</button>
+          <button type="button" class="pill-btn diff-opt" data-diff="difficult" data-i18n="diff_difficult" onclick="setDifficulty('difficult')">Difficult</button>
         </div>
       </div>
-      <button class="cta-btn" onclick="startInterview()">Begin Interview</button>
+      <button class="cta-btn" data-i18n="begin_interview" onclick="startInterview()">Begin Interview</button>
     </div>
   </section>
 
   <!-- ===== INTERVIEW ===== -->
   <section class="view" id="view-interview">
     <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:20px;">
-      <h2 style="margin-bottom:0;">The panel is listening</h2>
-      <a href="#" onclick="goTo('dashboard'); return false;" class="mono" style="font-size:12px; color:var(--ink-soft); text-decoration:underline;">← Back to Dashboard</a>
+      <h2 style="margin-bottom:0;" data-i18n="interview_title">The panel is listening</h2>
+      <a href="#" onclick="goTo('dashboard'); return false;" class="mono" style="font-size:12px; color:var(--ink-soft); text-decoration:underline;" data-i18n="back_to_dashboard">← Back to Dashboard</a>
     </div>
     <div class="persona-strip" id="personaStrip">
-      <div class="persona-pill active" data-p="hr"><div class="role">Evaluator 01</div><div class="who">HR</div></div>
-      <div class="persona-pill" data-p="tech"><div class="role">Evaluator 02</div><div class="who">Tech Lead</div></div>
-      <div class="persona-pill" data-p="hm"><div class="role">Evaluator 03</div><div class="who">Hiring Manager</div></div>
+      <div class="persona-pill active" data-p="hr"><div class="role" data-i18n="evaluator_01">Evaluator 01</div><div class="who" data-i18n="persona_hr">HR</div></div>
+      <div class="persona-pill" data-p="tech"><div class="role" data-i18n="evaluator_02">Evaluator 02</div><div class="who" data-i18n="persona_tech">Tech Lead</div></div>
+      <div class="persona-pill" data-p="hm"><div class="role" data-i18n="evaluator_03">Evaluator 03</div><div class="who" data-i18n="persona_hm">Hiring Manager</div></div>
+    </div>
+    <div class="debug-toggle-row" style="justify-content:space-between; flex-wrap:wrap;">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <button type="button" class="switch" id="pressureSwitch" onclick="togglePressureMode()"></button>
+        <span class="mono" style="font-size:12.5px;" data-i18n="pressure_mode_label">Pressure mode (auto-submits at time limit)</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <select id="pressureSecondsSelect" onchange="setPressureSeconds(this.value)" style="font-family:'IBM Plex Mono', monospace; font-size:12px; padding:4px 8px; border-radius:6px; border:1.5px solid var(--line); background:var(--paper-card);">
+          <option value="45">45s</option>
+          <option value="60" selected>60s</option>
+          <option value="90">90s</option>
+          <option value="120">120s</option>
+        </select>
+        <span class="mono" id="interviewTimerDisplay" style="display:none; font-size:14px; font-weight:600; color:var(--rust);"></span>
+      </div>
     </div>
     <div class="card question-box" id="questionBox">
       <div class="q-label" id="qLabel">Question 1 — HR</div>
-      <div class="q-text" id="questionText">Loading your first question…</div>
+      <div class="q-text" id="questionText" data-i18n="loading_question">Loading your first question…</div>
     </div>
     <div class="interview-stage">
       <div class="mic-wrap">
         <div class="mic-ring" id="micRing"></div>
         <button class="mic-btn" id="micBtn" onclick="toggleMic()">🎙</button>
       </div>
-      <div class="mic-status" id="micStatus">Tap to answer</div>
+      <div class="mic-status" id="micStatus" data-i18n="tap_to_answer">Tap to answer</div>
       <div class="signal-note" id="signalNote"></div>
+      <div style="margin:8px 0;">
+        <a href="#" onclick="showTypedFallback(); return false;" class="mono" style="font-size:12px; color:var(--ink-soft); text-decoration:underline;" data-i18n="type_answer_instead">Type your answer instead →</a>
+      </div>
       <div class="selfview-wrap">
-        <button class="selfview-toggle" id="selfviewToggle" onclick="toggleSelfView()">Enable camera self-check (beta)</button>
+        <button class="selfview-toggle" id="selfviewToggle" data-i18n="camera_toggle_on" onclick="toggleSelfView()">Enable camera self-check (beta)</button>
         <div class="selfview-box" id="selfviewBox">
           <video id="selfviewVideo" autoplay muted playsinline></video>
           <canvas id="selfviewCanvas"></canvas>
@@ -582,27 +642,111 @@
     </div>
     <div class="caption" id="caption"></div>
     <div class="interview-actions">
-      <button class="pill-btn" id="submitAnswerBtn" onclick="submitTypedAnswer()" style="display:none;">Submit Answer</button>
-      <button class="cta-btn" onclick="endInterview()">End &amp; See Verdict</button>
+      <button class="pill-btn" id="submitAnswerBtn" data-i18n="submit_answer" onclick="submitTypedAnswer()" style="display:none;">Submit Answer</button>
+      <button class="cta-btn" data-i18n="end_interview" onclick="endInterview()">End &amp; See Verdict</button>
     </div>
   </section>
 
   <!-- ===== RESULTS ===== -->
   <section class="view" id="view-results">
-    <h2 style="margin-bottom:6px;">The panel's reasoning</h2>
-    <p class="mono" style="font-size:12.5px; color:var(--ink-soft); margin-bottom:24px;">Not a score. The full deliberation.</p>
+    <h2 style="margin-bottom:6px;" data-i18n="results_title">The panel's reasoning</h2>
+    <p class="mono" style="font-size:12.5px; color:var(--ink-soft); margin-bottom:12px;" data-i18n="results_sub">Not a score. The full deliberation.</p>
+    <div style="margin-bottom:20px;">
+      <button class="cta-btn" data-i18n="download_verdict_report" onclick="downloadVerdictReport()">⬇ Download Verdict Report</button>
+    </div>
     <p class="mono" id="integrityNote" style="display:none; font-size:12px; color:var(--stamp); margin-bottom:14px;"></p>
     <div class="verdict-grid stagger" id="verdictGrid"></div>
 
-    <div class="section-label" style="margin-top:26px;">Performance by Evaluator</div>
-    <p class="mono" style="font-size:11px; color:var(--ink-soft); margin:-6px 0 12px;">Delivery signal per panelist, from your voice and self-reported camera check.</p>
+    <div class="section-label" style="margin-top:26px;" data-i18n="perf_by_evaluator">Performance by Evaluator</div>
+    <p class="mono" style="font-size:11px; color:var(--ink-soft); margin:-6px 0 12px;" data-i18n="perf_caption">Delivery signal per panelist, from your voice and self-reported camera check.</p>
     <div id="performancePanel" class="stagger"></div>
 
-    <div class="section-label">Full Transcript</div>
+    <div class="section-label" data-i18n="transcript_label">Full Transcript</div>
     <div class="transcript" id="transcriptBox">—</div>
-    <div class="section-label" id="coachingLabel" style="display:none;">Stronger Answers — Coaching</div>
+    <div class="section-label" id="coachingLabel" style="display:none;" data-i18n="coaching_label">Stronger Answers — Coaching</div>
     <div id="coachingList"></div>
-    <div class="cta-row"><button class="cta-btn" onclick="goTo('dashboard')">Back to Dashboard</button></div>
+    <div class="cta-row"><button class="cta-btn" data-i18n="back_dashboard_btn" onclick="goTo('dashboard')">Back to Dashboard</button></div>
+  </section>
+
+  <!-- ===== DSA PRACTICE ===== -->
+  <section class="view" id="view-dsa">
+    <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:6px;">
+      <h2 style="margin-bottom:0;" data-i18n="practice_title">DSA Practice</h2>
+      <a href="#" onclick="goTo('dashboard'); return false;" class="mono" style="font-size:12px; color:var(--ink-soft); text-decoration:underline;" data-i18n="back_to_dashboard">← Back to Dashboard</a>
+    </div>
+    <p class="mono" style="font-size:12.5px; color:var(--ink-soft); margin-bottom:20px;" data-i18n="practice_sub">Pick a level and a language, write your answer, then submit for a score.</p>
+
+    <div class="card" style="padding:18px 20px; margin-bottom:18px;">
+      <div style="display:flex; gap:22px; flex-wrap:wrap;">
+        <div class="role-field field-block" style="max-width:100%">
+          <label data-i18n="difficulty_label">Difficulty</label>
+          <div id="dsaDifficultyPicker" style="display:flex; gap:8px;">
+            <button type="button" class="pill-btn diff-opt" data-diff="easy" data-i18n="diff_easy" onclick="setDsaDifficulty('easy')">Easy</button>
+            <button type="button" class="pill-btn diff-opt on" data-diff="medium" data-i18n="diff_medium" onclick="setDsaDifficulty('medium')">Medium</button>
+            <button type="button" class="pill-btn diff-opt" data-diff="hard" data-i18n="diff_hard" onclick="setDsaDifficulty('hard')">Hard</button>
+          </div>
+        </div>
+        <div class="role-field field-block" style="max-width:100%">
+          <label data-i18n="prog_language_label">Programming language</label>
+          <div class="prog-lang-picker" id="progLangPicker">
+            <button type="button" class="pill-btn prog-opt on" data-lang="python" onclick="setProgLanguage('python')">Python</button>
+            <button type="button" class="pill-btn prog-opt" data-lang="java" onclick="setProgLanguage('java')">Java</button>
+            <button type="button" class="pill-btn prog-opt" data-lang="cpp" onclick="setProgLanguage('cpp')">C++</button>
+            <button type="button" class="pill-btn prog-opt" data-lang="javascript" onclick="setProgLanguage('javascript')">JavaScript</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card question-box" id="dsaQuestionBox" style="margin-bottom:16px;">
+      <div class="q-label" id="dsaQLabel">—</div>
+      <div class="q-text" id="dsaQuestionText" data-i18n="loading_question">Loading your first question…</div>
+      <ul id="dsaExamplesList" class="mono" style="font-size:12.5px; color:var(--ink-soft); margin-top:10px;"></ul>
+    </div>
+
+    <textarea class="code-editor" id="dsaCodeInput" data-i18n-ph="code_placeholder" placeholder="Write your solution here…" spellcheck="false"></textarea>
+
+    <div class="debug-toggle-row">
+      <button type="button" class="switch" id="debugSwitch" onclick="toggleDebugMode()"></button>
+      <span class="mono" style="font-size:12.5px;" data-i18n="debug_mode_label">Debug mode (step-through + hints, no score)</span>
+    </div>
+    <div class="debug-toggle-row" style="justify-content:space-between; flex-wrap:wrap;">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <button type="button" class="switch" id="dsaPressureSwitch" onclick="toggleDsaPressureMode()"></button>
+        <span class="mono" style="font-size:12.5px;" data-i18n="pressure_mode_label">Pressure mode (auto-submits at time limit)</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <select id="dsaPressureSecondsSelect" onchange="setDsaPressureSeconds(this.value)" style="font-family:'IBM Plex Mono', monospace; font-size:12px; padding:4px 8px; border-radius:6px; border:1.5px solid var(--line); background:var(--paper-card);">
+          <option value="180">3 min</option>
+          <option value="300" selected>5 min</option>
+          <option value="600">10 min</option>
+          <option value="900">15 min</option>
+        </select>
+        <span class="mono" id="dsaTimerDisplay" style="display:none; font-size:14px; font-weight:600; color:var(--rust);"></span>
+      </div>
+    </div>
+
+    <div class="cta-row" style="margin-top:6px;">
+      <button class="cta-btn" id="dsaSubmitBtn" data-i18n="submit_code" onclick="submitDsaAnswer()">Submit</button>
+      <button class="pill-btn ghost" data-i18n="new_question" onclick="loadDsaQuestion()">New question →</button>
+    </div>
+
+    <div class="card" id="dsaResultCard" style="display:none; margin-top:20px; padding:20px;">
+      <div id="dsaScoreBlock" class="score-ring-row" style="display:none;">
+        <div class="score-num" id="dsaScoreNum">—</div>
+        <div class="mono" style="font-size:11px; color:var(--ink-soft);" data-i18n="score_out_of">/ 100</div>
+      </div>
+      <div class="q-label" id="dsaVerdictLine" style="margin-bottom:8px;"></div>
+      <div style="font-size:13.5px; white-space:pre-wrap;" id="dsaFeedbackText"></div>
+      <div id="dsaHintBlock" style="display:none; margin-top:12px; padding-top:12px; border-top:1px solid var(--line);">
+        <div class="mono" style="font-size:11px; color:var(--ink-soft); margin-bottom:4px;" data-i18n="hint_label">Hint</div>
+        <div style="font-size:13px;" id="dsaHintText"></div>
+      </div>
+      <div id="dsaReferenceBlock" style="display:none; margin-top:12px; padding-top:12px; border-top:1px solid var(--line);">
+        <div class="mono" style="font-size:11px; color:var(--ink-soft); margin-bottom:4px;" data-i18n="reference_approach_label">Reference approach</div>
+        <div style="font-size:13px;" id="dsaReferenceText"></div>
+      </div>
+    </div>
   </section>
 
 </div>
@@ -611,17 +755,18 @@
   <div class="footer-wrap">
     <div>
       <div class="brand">THE HIRING <span>ROOM</span></div>
-      <p>An AI-powered resume and interview coach that shows the reasoning behind the verdict, not just a score.</p>
+      <p data-i18n="footer_tagline">An AI-powered resume and interview coach that shows the reasoning behind the verdict, not just a score.</p>
     </div>
     <div class="footer-links">
-      <h5>Product</h5>
-      <a href="#" onclick="goTo('landing'); return false;">Home</a>
-      <a href="#" onclick="goTo('dashboard'); return false;">Dashboard</a>
-      <a href="#" onclick="goTo('upload'); return false;">Upload Resume</a>
-      <a href="#" onclick="goTo('interview'); return false;">Interview</a>
+      <h5 data-i18n="footer_product">Product</h5>
+      <a href="#" onclick="goTo('landing'); return false;" data-i18n="nav_home">Home</a>
+      <a href="#" onclick="goTo('dashboard'); return false;" data-i18n="nav_dashboard">Dashboard</a>
+      <a href="#" onclick="goTo('upload'); return false;" data-i18n="footer_upload_resume">Upload Resume</a>
+      <a href="#" onclick="goTo('interview'); return false;" data-i18n="nav_interview">Interview</a>
+      <a href="#" onclick="goTo('dsa'); return false;" data-i18n="nav_practice">Practice</a>
     </div>
     <div class="footer-links">
-      <h5>Case File</h5>
+      <h5 data-i18n="footer_case_file">Case File</h5>
       <a href="#">Divya Sharma</a>
       <a href="#">Anagha Pai</a>
       <a href="#">Harshitha N</a>
@@ -629,16 +774,17 @@
   </div>
   <div class="footer-bottom">
     <span>Case 01 · Girl Geeks 2026</span>
-    <span>Built with a panel, not a score.</span>
+    <span data-i18n="footer_built_with">Built with a panel, not a score.</span>
   </div>
 </footer>
 
 <div class="dock-wrap">
   <nav class="dock" id="dock">
-    <button class="dock-item" data-view="dashboard" onclick="goTo('dashboard')">Dashboard</button>
-    <button class="dock-item" data-view="upload" onclick="goTo('upload')">Upload</button>
-    <button class="dock-item" data-view="interview" onclick="goTo('interview')">Interview</button>
-    <button class="dock-item" data-view="results" onclick="goTo('results')">Verdict</button>
+    <button class="dock-item" data-view="dashboard" data-i18n="nav_dashboard" onclick="goTo('dashboard')">Dashboard</button>
+    <button class="dock-item" data-view="upload" data-i18n="nav_upload" onclick="goTo('upload')">Upload</button>
+    <button class="dock-item" data-view="interview" data-i18n="nav_interview" onclick="goTo('interview')">Interview</button>
+    <button class="dock-item" data-view="dsa" data-i18n="nav_practice" onclick="goTo('dsa')">Practice</button>
+    <button class="dock-item" data-view="results" data-i18n="nav_verdict" onclick="goTo('results')">Verdict</button>
   </nav>
 </div>
 
@@ -649,12 +795,306 @@
   // ===================================================================
   const API_BASE = 'http://localhost:8000';
 
+  // ===================================================================
+  // i18n — English / Hindi / Kannada. Static UI strings are looked up
+  // here and applied via data-i18n / data-i18n-ph attributes. Dynamic
+  // content (interview questions, verdicts, coaching, DSA feedback) is
+  // instead generated directly in the chosen language by the backend
+  // (see state.language sent to /interview/start and /dsa/*), so this
+  // dictionary only needs to cover strings that live in this HTML file.
+  // ===================================================================
+  const LANG = {
+    en: {
+      nav_home:'Home', nav_dashboard:'Dashboard', nav_upload:'Upload', nav_interview:'Interview',
+      nav_practice:'Practice', nav_verdict:'Verdict', sign_in:'Sign In', sign_out:'Sign out',
+      hero_badge:'Panel Reviewed', hero_title:'THE HIRING ROOM', hero_sub:"Not a score. A panel's reasoning.",
+      hero_get_started:'Get Started', exhibit_a:'Exhibit A', exhibit_b:'Exhibit B', exhibit_c:'Exhibit C',
+      lede_a:"Every existing resume and interview tool hands back <em>a single opaque score</em> — never the reasoning behind it. A real hiring decision has never worked that way.",
+      doc_today_label:'On file today', doc_today_title:'The Score',
+      doc_today_li1:'A single opaque score', doc_today_li2:'No insight into the why', doc_today_li3:"One evaluator's lens only",
+      doc_panel_label:"This case's approach", doc_panel_title:'The Panel',
+      doc_panel_li1:'Three-persona panel debate', doc_panel_li2:'Visible disagreement, on record', doc_panel_li3:'Specific, actionable gaps',
+      chart_title:'Candidates improve session over session', chart_note:'Sample cohort — 6 mock sessions',
+      legend_score_tool:'Score-only tool (self-reported)', legend_panel_tool:'Panel deliberation (this app)',
+      chart_caption:'Candidates who see <em style="color:var(--ink)">why</em> an answer fell short revise it — candidates who only see a number tend to repeat the same answer.',
+      lede_c:"What's actually in the file.",
+      bento1_title:'Three-Persona Panel', bento1_desc:'HR, Tech Lead &amp; Hiring Manager each interview from their own lens.',
+      bento2_title:'Visible Deliberation', bento2_desc:'The panel debates the candidate afterward — disagreements included.',
+      bento3_title:'JD-Matched Resume', bento3_desc:'Semantic match, ATS-parse flags, per-requirement gaps.',
+      bento4_title:'Interviewer Memory', bento4_desc:'The panel calls back to earlier answers, like a real interviewer.',
+      bento5_title:'STAR Detection', bento5_desc:'Labels Situation / Task / Action / Result in every answer.',
+      bento6_title:'DSA Practice', bento6_desc:'Pick a difficulty, write code, and get scored with debug-mode hints.',
+      enter_room:'Enter the Room',
+      auth_signin_tab:'Sign In', auth_register_tab:'Register', auth_submit_register:'Create Case File',
+      field_full_name:'Full name', field_email:'Email', field_password:'Password',
+      verify_flash:'Contacting the panel…', auth_or:'or', auth_note:'Your case file stays private — only your panel sees it.',
+      dash_welcome:'Welcome back', dash_subline:'Your case file, at a glance.', dash_new_session:'+ New Session',
+      resume_in_progress:'Interview in progress', resume_button:'Resume interview →',
+      stat_sessions:'Sessions Completed', stat_resumes:'Resumes Analyzed', stat_verdict:'Latest Verdict',
+      growth_label:'Verdict trend over time', growth_caption:'Strong = 3, Lean = 2, Discuss = 1 per session, oldest to most recent.',
+      growth_needs_more:'One session so far — trend line appears after your next one',
+      overview_title:"How You're Doing Overall", overview_loading:'Loading…',
+      strengths_label:'Strengths', where_to_improve:'Where to improve', recommended_resources:'Recommended resources',
+      session_history_title:'Session History', session_history_sub:'Click a session to review its full transcript and verdicts.',
+      close_label:'Close', perf_by_evaluator:'Performance by Evaluator', perf_caption:'Delivery signal per panelist, from your voice and self-reported camera check.',
+      transcript_label:'Transcript',
+      upload_title:'Submit your resume', back_to_dashboard:'← Back to Dashboard',
+      upload_sub:'Exhibit — matched against the job description before the panel convenes.',
+      resume_on_file:'Resume on file', match_word:'match', continue_resume:'Continue with this resume', upload_different:'Upload a different one',
+      jd_label:'Job description', jd_placeholder:'Paste the job description here — one requirement per line works best.',
+      dropzone_drop:'Drop your resume here', dropzone_browse:'or click to browse', dropzone_types:'PDF or DOCX, up to 5MB',
+      skip_resume:'Skip resume, start interview anyway →', progress_label:'Running semantic JD-match…',
+      paste_resume_instead:'Or paste your resume text instead →', upload_file_instead:'Or upload a file instead →',
+      resume_text_label:'Resume text', resume_text_placeholder:'Paste your resume text here…', analyze_pasted:'Analyze pasted resume',
+      jd_first_warning:'Paste the job description above first, then try again.', paste_empty_warning:'Paste your resume text first.',
+      match_complete:'Match complete.',
+      gap_analysis:'Gap Analysis', semantic_match:'Semantic JD match', matched_points:'Matched points', gaps_label:'Gaps',
+      upload_different_instead:'Upload a different resume instead',
+      role_label:"Role you're interviewing for", role_placeholder:'e.g. Backend Engineer',
+      difficulty_label:'Difficulty', diff_easy:'Easy', diff_moderate:'Moderate', diff_difficult:'Difficult',
+      diff_medium:'Medium', diff_hard:'Hard', begin_interview:'Begin Interview',
+      interview_title:'The panel is listening', evaluator_01:'Evaluator 01', evaluator_02:'Evaluator 02', evaluator_03:'Evaluator 03',
+      persona_hr:'HR', persona_tech:'Tech Lead', persona_hm:'Hiring Manager',
+      loading_question:'Loading your first question…', tap_to_answer:'Tap to answer',
+      type_answer_instead:'Type your answer instead →', type_answer_placeholder:'Type your answer…',
+      camera_toggle_on:'Enable camera self-check (beta)', camera_toggle_off:'Turn off camera self-check',
+      submit_answer:'Submit Answer', end_interview:'End & See Verdict',
+      pressure_mode_label:'Pressure mode (auto-submits at time limit)',
+      no_answer_time_up:'(No answer given — time limit reached.)',
+      time_up_label:"Time's up", no_code_time_up:'No code was written before time ran out.',
+      results_title:"The panel's reasoning", results_sub:'Not a score. The full deliberation.',
+      coaching_label:'Stronger Answers — Coaching', back_dashboard_btn:'Back to Dashboard',
+      download_verdict_report:'⬇ Download Verdict Report', download_progress_report:'⬇ Download Progress Report',
+      q_asks:'asks:', panel_colon:'Panel:', deliberating:'The panel is deliberating…', retry:'Retry',
+      integrity_note_prefix:'⚠ During this session:', integrity_tab_times:'left the tab {n} time(s)', integrity_paste_times:'attempted to paste an answer {n} time(s)',
+      strong_hire:'Strong Hire', lean_hire:'Lean Hire', discuss_hire:'Discuss',
+      quote_verified:'Quote verified', quote_unverified:'Quote unverified',
+      you_said:'You said:', stronger_version:'Stronger version:', score_label:'Score', star_label:'STAR detected',
+      s_detected:'S detected', t_detected:'T detected', a_detected:'A detected', r_detected:'R detected',
+      speaking_pace:'Speaking pace', filler_words:'Filler words (total)', pauses_avg:'Pauses (avg per answer)',
+      eye_contact:'Eye contact (self-reported)', questions_answered:'question(s) answered', voice_delivery_read:'Voice & delivery read:',
+      practice_title:'DSA Practice', practice_sub:'Pick a level and a language, write your answer, then submit for a score.',
+      prog_language_label:'Programming language', code_placeholder:'Write your solution here…',
+      debug_mode_label:'Debug mode (step-through + hints, no score)', submit_code:'Submit', run_debug:'Run Debug', new_question:'New question →',
+      score_out_of:'/ 100', hint_label:'Hint', reference_approach_label:'Reference approach',
+      grading:'Grading your answer…', debugging:'Stepping through your code…',
+      footer_tagline:'An AI-powered resume and interview coach that shows the reasoning behind the verdict, not just a score.',
+      footer_product:'Product', footer_upload_resume:'Upload Resume', footer_case_file:'Case File',
+      footer_built_with:'Built with a panel, not a score.',
+    },
+    hi: {
+      nav_home:'होम', nav_dashboard:'डैशबोर्ड', nav_upload:'अपलोड', nav_interview:'इंटरव्यू',
+      nav_practice:'अभ्यास', nav_verdict:'फ़ैसला', sign_in:'साइन इन', sign_out:'साइन आउट',
+      hero_badge:'पैनल द्वारा समीक्षित', hero_title:'द हायरिंग रूम', hero_sub:'सिर्फ़ स्कोर नहीं। पैनल का तर्क।',
+      hero_get_started:'शुरू करें', exhibit_a:'साक्ष्य A', exhibit_b:'साक्ष्य B', exhibit_c:'साक्ष्य C',
+      lede_a:'हर मौजूदा रिज़्यूमे और इंटरव्यू टूल सिर्फ़ <em>एक अस्पष्ट स्कोर</em> देता है — कभी उसके पीछे की वजह नहीं। असली हायरिंग फ़ैसला कभी ऐसे नहीं होता।',
+      doc_today_label:'आज जो होता है', doc_today_title:'सिर्फ़ स्कोर',
+      doc_today_li1:'एक अस्पष्ट स्कोर', doc_today_li2:'वजह की कोई जानकारी नहीं', doc_today_li3:'सिर्फ़ एक मूल्यांकनकर्ता का नज़रिया',
+      doc_panel_label:'इस ऐप का तरीका', doc_panel_title:'पैनल',
+      doc_panel_li1:'तीन-व्यक्तित्व पैनल चर्चा', doc_panel_li2:'खुली असहमति, रिकॉर्ड पर', doc_panel_li3:'स्पष्ट, कार्रवाई योग्य कमियाँ',
+      chart_title:'हर सत्र के साथ उम्मीदवार बेहतर होते हैं', chart_note:'नमूना समूह — 6 मॉक सत्र',
+      legend_score_tool:'सिर्फ़ स्कोर देने वाला टूल (स्व-रिपोर्टेड)', legend_panel_tool:'पैनल चर्चा (यह ऐप)',
+      chart_caption:'जो उम्मीदवार <em style="color:var(--ink)">क्यों</em> देखते हैं वे जवाब सुधारते हैं — जो सिर्फ़ नंबर देखते हैं वे वही जवाब दोहराते हैं।',
+      lede_c:'फ़ाइल में असल में क्या है।',
+      bento1_title:'तीन-व्यक्तित्व पैनल', bento1_desc:'HR, टेक लीड और हायरिंग मैनेजर अपने-अपने नज़रिए से इंटरव्यू लेते हैं।',
+      bento2_title:'खुली चर्चा', bento2_desc:'पैनल बाद में उम्मीदवार पर चर्चा करता है — असहमति सहित।',
+      bento3_title:'JD-मैच्ड रिज़्यूमे', bento3_desc:'सिमेंटिक मैच, ATS-पार्स फ़्लैग, हर ज़रूरत के हिसाब से कमियाँ।',
+      bento4_title:'इंटरव्यूअर मेमोरी', bento4_desc:'पैनल पहले दिए जवाबों को याद रखकर सवाल पूछता है, असली इंटरव्यूअर की तरह।',
+      bento5_title:'STAR पहचान', bento5_desc:'हर जवाब में Situation / Task / Action / Result को चिह्नित करता है।',
+      bento6_title:'DSA अभ्यास', bento6_desc:'एक कठिनाई स्तर चुनें, कोड लिखें, और डिबग-मोड संकेतों के साथ स्कोर पाएं।',
+      enter_room:'रूम में प्रवेश करें',
+      auth_signin_tab:'साइन इन', auth_register_tab:'रजिस्टर करें', auth_submit_register:'केस फ़ाइल बनाएं',
+      field_full_name:'पूरा नाम', field_email:'ईमेल', field_password:'पासवर्ड',
+      verify_flash:'पैनल से संपर्क हो रहा है…', auth_or:'या', auth_note:'आपकी केस फ़ाइल निजी रहती है — सिर्फ़ आपका पैनल इसे देखता है।',
+      dash_welcome:'वापसी पर स्वागत है', dash_subline:'आपकी केस फ़ाइल, एक नज़र में।', dash_new_session:'+ नया सत्र',
+      resume_in_progress:'इंटरव्यू जारी है', resume_button:'इंटरव्यू फिर से शुरू करें →',
+      stat_sessions:'पूरे किए गए सत्र', stat_resumes:'विश्लेषित रिज़्यूमे', stat_verdict:'नवीनतम फ़ैसला',
+      growth_label:'समय के साथ फ़ैसले का रुझान', growth_caption:'स्ट्रॉन्ग = 3, लीन = 2, डिस्कस = 1 प्रति सत्र, पुराने से नए तक।',
+      growth_needs_more:'अभी तक एक सत्र — अगले सत्र के बाद रुझान दिखेगा',
+      overview_title:'आप कुल मिलाकर कैसा कर रहे हैं', overview_loading:'लोड हो रहा है…',
+      strengths_label:'ताकत', where_to_improve:'कहाँ सुधार करें', recommended_resources:'सुझाए गए संसाधन',
+      session_history_title:'सत्र इतिहास', session_history_sub:'पूरा ट्रांसक्रिप्ट और फ़ैसले देखने के लिए किसी सत्र पर क्लिक करें।',
+      close_label:'बंद करें', perf_by_evaluator:'हर मूल्यांकनकर्ता के अनुसार प्रदर्शन', perf_caption:'आपकी आवाज़ और स्व-रिपोर्टेड कैमरा जांच से हर पैनलिस्ट का डिलीवरी सिग्नल।',
+      transcript_label:'ट्रांसक्रिप्ट',
+      upload_title:'अपना रिज़्यूमे जमा करें', back_to_dashboard:'← डैशबोर्ड पर वापस जाएं',
+      upload_sub:'साक्ष्य — पैनल शुरू होने से पहले जॉब विवरण से मिलान किया गया।',
+      resume_on_file:'फ़ाइल में रिज़्यूमे', match_word:'मैच', continue_resume:'इसी रिज़्यूमे के साथ जारी रखें', upload_different:'दूसरा अपलोड करें',
+      jd_label:'जॉब विवरण', jd_placeholder:'यहाँ जॉब विवरण पेस्ट करें — हर लाइन में एक ज़रूरत लिखना सबसे अच्छा रहता है।',
+      dropzone_drop:'अपना रिज़्यूमे यहाँ छोड़ें', dropzone_browse:'या ब्राउज़ करने के लिए क्लिक करें', dropzone_types:'PDF या DOCX, 5MB तक',
+      skip_resume:'रिज़्यूमे छोड़ें, फिर भी इंटरव्यू शुरू करें →', progress_label:'सिमेंटिक JD-मैच चल रहा है…',
+      paste_resume_instead:'या इसके बजाय अपना रिज़्यूमे टेक्स्ट पेस्ट करें →', upload_file_instead:'या इसके बजाय फ़ाइल अपलोड करें →',
+      resume_text_label:'रिज़्यूमे टेक्स्ट', resume_text_placeholder:'यहाँ अपना रिज़्यूमे टेक्स्ट पेस्ट करें…', analyze_pasted:'पेस्ट किया रिज़्यूमे विश्लेषित करें',
+      jd_first_warning:'पहले ऊपर जॉब विवरण पेस्ट करें, फिर फिर से कोशिश करें।', paste_empty_warning:'पहले अपना रिज़्यूमे टेक्स्ट पेस्ट करें।',
+      match_complete:'मैच पूरा हुआ।',
+      gap_analysis:'कमी विश्लेषण', semantic_match:'सिमेंटिक JD मैच', matched_points:'मिलान बिंदु', gaps_label:'कमियाँ',
+      upload_different_instead:'इसके बजाय दूसरा रिज़्यूमे अपलोड करें',
+      role_label:'आप जिस पद के लिए इंटरव्यू दे रहे हैं', role_placeholder:'जैसे: बैकएंड इंजीनियर',
+      difficulty_label:'कठिनाई स्तर', diff_easy:'आसान', diff_moderate:'सामान्य', diff_difficult:'कठिन',
+      diff_medium:'मध्यम', diff_hard:'कठिन', begin_interview:'इंटरव्यू शुरू करें',
+      interview_title:'पैनल सुन रहा है', evaluator_01:'मूल्यांकनकर्ता 01', evaluator_02:'मूल्यांकनकर्ता 02', evaluator_03:'मूल्यांकनकर्ता 03',
+      persona_hr:'HR', persona_tech:'टेक लीड', persona_hm:'हायरिंग मैनेजर',
+      loading_question:'आपका पहला सवाल लोड हो रहा है…', tap_to_answer:'जवाब देने के लिए टैप करें',
+      type_answer_instead:'इसके बजाय अपना जवाब टाइप करें →', type_answer_placeholder:'अपना जवाब टाइप करें…',
+      camera_toggle_on:'कैमरा सेल्फ-चेक चालू करें (बीटा)', camera_toggle_off:'कैमरा सेल्फ-चेक बंद करें',
+      submit_answer:'जवाब जमा करें', end_interview:'समाप्त करें और फ़ैसला देखें',
+      pressure_mode_label:'प्रेशर मोड (समय सीमा पर स्वतः जमा)',
+      no_answer_time_up:'(कोई जवाब नहीं दिया गया — समय सीमा समाप्त।)',
+      time_up_label:'समय समाप्त', no_code_time_up:'समय समाप्त होने से पहले कोई कोड नहीं लिखा गया।',
+      results_title:'पैनल का तर्क', results_sub:'सिर्फ़ स्कोर नहीं। पूरी चर्चा।',
+      coaching_label:'बेहतर जवाब — कोचिंग', back_dashboard_btn:'डैशबोर्ड पर वापस जाएं',
+      download_verdict_report:'⬇ फ़ैसला रिपोर्ट डाउनलोड करें', download_progress_report:'⬇ प्रगति रिपोर्ट डाउनलोड करें',
+      q_asks:'पूछते हैं:', panel_colon:'पैनल:', deliberating:'पैनल विचार कर रहा है…', retry:'फिर से कोशिश करें',
+      integrity_note_prefix:'⚠ इस सत्र के दौरान:', integrity_tab_times:'{n} बार टैब छोड़ा', integrity_paste_times:'{n} बार जवाब पेस्ट करने की कोशिश की',
+      strong_hire:'स्ट्रॉन्ग हायर', lean_hire:'लीन हायर', discuss_hire:'चर्चा ज़रूरी',
+      quote_verified:'उद्धरण सत्यापित', quote_unverified:'उद्धरण असत्यापित',
+      you_said:'आपने कहा:', stronger_version:'बेहतर संस्करण:', score_label:'स्कोर', star_label:'STAR पहचाना गया',
+      s_detected:'S मिला', t_detected:'T मिला', a_detected:'A मिला', r_detected:'R मिला',
+      speaking_pace:'बोलने की गति', filler_words:'भराव शब्द (कुल)', pauses_avg:'ठहराव (प्रति उत्तर औसत)',
+      eye_contact:'आई कॉन्टैक्ट (स्व-रिपोर्टेड)', questions_answered:'सवाल(ों) का जवाब दिया', voice_delivery_read:'आवाज़ और प्रस्तुति का आकलन:',
+      practice_title:'DSA अभ्यास', practice_sub:'स्तर और भाषा चुनें, अपना जवाब लिखें, फिर स्कोर के लिए जमा करें।',
+      prog_language_label:'प्रोग्रामिंग भाषा', code_placeholder:'यहाँ अपना समाधान लिखें…',
+      debug_mode_label:'डिबग मोड (चरण-दर-चरण + संकेत, कोई स्कोर नहीं)', submit_code:'जमा करें', run_debug:'डिबग चलाएं', new_question:'नया सवाल →',
+      score_out_of:'/ 100', hint_label:'संकेत', reference_approach_label:'संदर्भ तरीका',
+      grading:'आपके जवाब की जांच हो रही है…', debugging:'आपका कोड चरण-दर-चरण देखा जा रहा है…',
+      footer_tagline:'एक AI-संचालित रिज़्यूमे और इंटरव्यू कोच जो सिर्फ़ स्कोर नहीं, फ़ैसले के पीछे की वजह दिखाता है।',
+      footer_product:'उत्पाद', footer_upload_resume:'रिज़्यूमे अपलोड करें', footer_case_file:'केस फ़ाइल',
+      footer_built_with:'स्कोर नहीं, पैनल के साथ बनाया गया।',
+    },
+    kn: {
+      nav_home:'ಮುಖಪುಟ', nav_dashboard:'ಡ್ಯಾಶ್‌ಬೋರ್ಡ್', nav_upload:'ಅಪ್‌ಲೋಡ್', nav_interview:'ಸಂದರ್ಶನ',
+      nav_practice:'ಅಭ್ಯಾಸ', nav_verdict:'ತೀರ್ಪು', sign_in:'ಸೈನ್ ಇನ್', sign_out:'ಸೈನ್ ಔಟ್',
+      hero_badge:'ಪ್ಯಾನಲ್ ಪರಿಶೀಲಿಸಿದೆ', hero_title:'ದ ಹೈರಿಂಗ್ ರೂಮ್', hero_sub:'ಸ್ಕೋರ್ ಅಲ್ಲ. ಪ್ಯಾನಲ್‌ನ ತರ್ಕ.',
+      hero_get_started:'ಪ್ರಾರಂಭಿಸಿ', exhibit_a:'ಸಾಕ್ಷ್ಯ A', exhibit_b:'ಸಾಕ್ಷ್ಯ B', exhibit_c:'ಸಾಕ್ಷ್ಯ C',
+      lede_a:'ಪ್ರತಿಯೊಂದು ರೆಸ್ಯೂಮ್ ಮತ್ತು ಸಂದರ್ಶನ ಟೂಲ್ ಕೇವಲ <em>ಒಂದು ಅಸ್ಪಷ್ಟ ಸ್ಕೋರ್</em> ನೀಡುತ್ತದೆ — ಅದರ ಹಿಂದಿನ ಕಾರಣ ಎಂದಿಗೂ ಇಲ್ಲ. ನಿಜವಾದ ನೇಮಕಾತಿ ನಿರ್ಧಾರ ಹಾಗೆ ಕೆಲಸ ಮಾಡಿಲ್ಲ.',
+      doc_today_label:'ಇಂದು ಇರುವುದು', doc_today_title:'ಸ್ಕೋರ್ ಮಾತ್ರ',
+      doc_today_li1:'ಒಂದು ಅಸ್ಪಷ್ಟ ಸ್ಕೋರ್', doc_today_li2:'ಕಾರಣದ ಬಗ್ಗೆ ಯಾವುದೇ ಮಾಹಿತಿ ಇಲ್ಲ', doc_today_li3:'ಒಬ್ಬ ಮೌಲ್ಯಮಾಪಕರ ದೃಷ್ಟಿಕೋನ ಮಾತ್ರ',
+      doc_panel_label:'ಈ ಆ್ಯಪ್‌ನ ವಿಧಾನ', doc_panel_title:'ಪ್ಯಾನಲ್',
+      doc_panel_li1:'ಮೂರು-ವ್ಯಕ್ತಿತ್ವ ಪ್ಯಾನಲ್ ಚರ್ಚೆ', doc_panel_li2:'ಬಹಿರಂಗ ಭಿನ್ನಾಭಿಪ್ರಾಯ, ದಾಖಲೆಯಲ್ಲಿ', doc_panel_li3:'ನಿಖರವಾದ, ಕ್ರಿಯಾಶೀಲ ಕೊರತೆಗಳು',
+      chart_title:'ಪ್ರತಿ ಸೆಷನ್‌ನೊಂದಿಗೆ ಅಭ್ಯರ್ಥಿಗಳು ಸುಧಾರಿಸುತ್ತಾರೆ', chart_note:'ಮಾದರಿ ಗುಂಪು — 6 ಅಣಕು ಸೆಷನ್‌ಗಳು',
+      legend_score_tool:'ಸ್ಕೋರ್-ಮಾತ್ರ ಟೂಲ್ (ಸ್ವಯಂ-ವರದಿ)', legend_panel_tool:'ಪ್ಯಾನಲ್ ಚರ್ಚೆ (ಈ ಆ್ಯಪ್)',
+      chart_caption:'<em style="color:var(--ink)">ಏಕೆ</em> ಎಂದು ನೋಡುವ ಅಭ್ಯರ್ಥಿಗಳು ಉತ್ತರ ಸುಧಾರಿಸುತ್ತಾರೆ — ಕೇವಲ ಸಂಖ್ಯೆ ನೋಡುವವರು ಅದೇ ಉತ್ತರ ಪುನರಾವರ್ತಿಸುತ್ತಾರೆ.',
+      lede_c:'ಫೈಲ್‌ನಲ್ಲಿ ನಿಜವಾಗಿ ಏನಿದೆ.',
+      bento1_title:'ಮೂರು-ವ್ಯಕ್ತಿತ್ವ ಪ್ಯಾನಲ್', bento1_desc:'HR, ಟೆಕ್ ಲೀಡ್ ಮತ್ತು ಹೈರಿಂಗ್ ಮ್ಯಾನೇಜರ್ ತಮ್ಮ ದೃಷ್ಟಿಕೋನದಿಂದ ಸಂದರ್ಶಿಸುತ್ತಾರೆ.',
+      bento2_title:'ಬಹಿರಂಗ ಚರ್ಚೆ', bento2_desc:'ಪ್ಯಾನಲ್ ನಂತರ ಅಭ್ಯರ್ಥಿಯ ಬಗ್ಗೆ ಚರ್ಚಿಸುತ್ತದೆ — ಭಿನ್ನಾಭಿಪ್ರಾಯ ಸೇರಿ.',
+      bento3_title:'JD-ಹೊಂದಾಣಿಕೆಯ ರೆಸ್ಯೂಮ್', bento3_desc:'ಸೆಮ್ಯಾಂಟಿಕ್ ಮ್ಯಾಚ್, ATS-ಪಾರ್ಸ್ ಫ್ಲ್ಯಾಗ್‌ಗಳು, ಪ್ರತಿ ಅಗತ್ಯಕ್ಕೆ ಕೊರತೆಗಳು.',
+      bento4_title:'ಸಂದರ್ಶಕ ಸ್ಮರಣೆ', bento4_desc:'ಪ್ಯಾನಲ್ ಹಿಂದಿನ ಉತ್ತರಗಳನ್ನು ನೆನಪಿಸಿಕೊಂಡು ಪ್ರಶ್ನಿಸುತ್ತದೆ, ನಿಜವಾದ ಸಂದರ್ಶಕರಂತೆ.',
+      bento5_title:'STAR ಪತ್ತೆ', bento5_desc:'ಪ್ರತಿ ಉತ್ತರದಲ್ಲಿ Situation / Task / Action / Result ಗುರುತಿಸುತ್ತದೆ.',
+      bento6_title:'DSA ಅಭ್ಯಾಸ', bento6_desc:'ಕಠಿಣತೆ ಆಯ್ಕೆಮಾಡಿ, ಕೋಡ್ ಬರೆಯಿರಿ, ಡೀಬಗ್-ಮೋಡ್ ಸುಳಿವುಗಳೊಂದಿಗೆ ಸ್ಕೋರ್ ಪಡೆಯಿರಿ.',
+      enter_room:'ರೂಮ್ ಪ್ರವೇಶಿಸಿ',
+      auth_signin_tab:'ಸೈನ್ ಇನ್', auth_register_tab:'ನೋಂದಣಿ', auth_submit_register:'ಕೇಸ್ ಫೈಲ್ ರಚಿಸಿ',
+      field_full_name:'ಪೂರ್ಣ ಹೆಸರು', field_email:'ಇಮೇಲ್', field_password:'ಪಾಸ್‌ವರ್ಡ್',
+      verify_flash:'ಪ್ಯಾನಲ್ ಸಂಪರ್ಕಿಸಲಾಗುತ್ತಿದೆ…', auth_or:'ಅಥವಾ', auth_note:'ನಿಮ್ಮ ಕೇಸ್ ಫೈಲ್ ಖಾಸಗಿಯಾಗಿ ಉಳಿಯುತ್ತದೆ — ನಿಮ್ಮ ಪ್ಯಾನಲ್ ಮಾತ್ರ ಇದನ್ನು ನೋಡುತ್ತದೆ.',
+      dash_welcome:'ಮತ್ತೆ ಸ್ವಾಗತ', dash_subline:'ನಿಮ್ಮ ಕೇಸ್ ಫೈಲ್, ಒಂದೇ ನೋಟದಲ್ಲಿ.', dash_new_session:'+ ಹೊಸ ಸೆಷನ್',
+      resume_in_progress:'ಸಂದರ್ಶನ ಪ್ರಗತಿಯಲ್ಲಿದೆ', resume_button:'ಸಂದರ್ಶನ ಮುಂದುವರಿಸಿ →',
+      stat_sessions:'ಪೂರ್ಣಗೊಂಡ ಸೆಷನ್‌ಗಳು', stat_resumes:'ವಿಶ್ಲೇಷಿಸಿದ ರೆಸ್ಯೂಮ್‌ಗಳು', stat_verdict:'ಇತ್ತೀಚಿನ ತೀರ್ಪು',
+      growth_label:'ಕಾಲಾನಂತರ ತೀರ್ಪಿನ ಪ್ರವೃತ್ತಿ', growth_caption:'ಸ್ಟ್ರಾಂಗ್ = 3, ಲೀನ್ = 2, ಡಿಸ್ಕಸ್ = 1 ಪ್ರತಿ ಸೆಷನ್, ಹಳೆಯದರಿಂದ ಇತ್ತೀಚಿನವರೆಗೆ.',
+      growth_needs_more:'ಇಲ್ಲಿಯವರೆಗೆ ಒಂದು ಸೆಷನ್ — ಮುಂದಿನ ಸೆಷನ್ ನಂತರ ಪ್ರವೃತ್ತಿ ಕಾಣಿಸುತ್ತದೆ',
+      overview_title:'ನೀವು ಒಟ್ಟಾರೆ ಹೇಗೆ ಮಾಡುತ್ತಿದ್ದೀರಿ', overview_loading:'ಲೋಡ್ ಆಗುತ್ತಿದೆ…',
+      strengths_label:'ಸಾಮರ್ಥ್ಯಗಳು', where_to_improve:'ಎಲ್ಲಿ ಸುಧಾರಿಸಬೇಕು', recommended_resources:'ಶಿಫಾರಸು ಮಾಡಿದ ಸಂಪನ್ಮೂಲಗಳು',
+      session_history_title:'ಸೆಷನ್ ಇತಿಹಾಸ', session_history_sub:'ಪೂರ್ಣ ಪ್ರತಿಲಿಪಿ ಮತ್ತು ತೀರ್ಪುಗಳನ್ನು ನೋಡಲು ಒಂದು ಸೆಷನ್ ಕ್ಲಿಕ್ ಮಾಡಿ.',
+      close_label:'ಮುಚ್ಚಿ', perf_by_evaluator:'ಪ್ರತಿ ಮೌಲ್ಯಮಾಪಕರ ಪ್ರದರ್ಶನ', perf_caption:'ನಿಮ್ಮ ಧ್ವನಿ ಮತ್ತು ಸ್ವಯಂ-ವರದಿ ಕ್ಯಾಮೆರಾ ಪರಿಶೀಲನೆಯಿಂದ ಪ್ರತಿ ಪ್ಯಾನಲಿಸ್ಟ್‌ನ ಡೆಲಿವರಿ ಸಿಗ್ನಲ್.',
+      transcript_label:'ಪ್ರತಿಲಿಪಿ',
+      upload_title:'ನಿಮ್ಮ ರೆಸ್ಯೂಮ್ ಸಲ್ಲಿಸಿ', back_to_dashboard:'← ಡ್ಯಾಶ್‌ಬೋರ್ಡ್‌ಗೆ ಹಿಂತಿರುಗಿ',
+      upload_sub:'ಸಾಕ್ಷ್ಯ — ಪ್ಯಾನಲ್ ಪ್ರಾರಂಭವಾಗುವ ಮೊದಲು ಉದ್ಯೋಗ ವಿವರಣೆಗೆ ಹೊಂದಿಸಲಾಗಿದೆ.',
+      resume_on_file:'ಫೈಲ್‌ನಲ್ಲಿರುವ ರೆಸ್ಯೂಮ್', match_word:'ಹೊಂದಾಣಿಕೆ', continue_resume:'ಈ ರೆಸ್ಯೂಮ್‌ನೊಂದಿಗೆ ಮುಂದುವರಿಸಿ', upload_different:'ಬೇರೆಯದನ್ನು ಅಪ್‌ಲೋಡ್ ಮಾಡಿ',
+      jd_label:'ಉದ್ಯೋಗ ವಿವರಣೆ', jd_placeholder:'ಇಲ್ಲಿ ಉದ್ಯೋಗ ವಿವರಣೆಯನ್ನು ಅಂಟಿಸಿ — ಪ್ರತಿ ಸಾಲಿಗೆ ಒಂದು ಅಗತ್ಯ ಬರೆಯುವುದು ಉತ್ತಮ.',
+      dropzone_drop:'ನಿಮ್ಮ ರೆಸ್ಯೂಮ್ ಅನ್ನು ಇಲ್ಲಿ ಬಿಡಿ', dropzone_browse:'ಅಥವಾ ಬ್ರೌಸ್ ಮಾಡಲು ಕ್ಲಿಕ್ ಮಾಡಿ', dropzone_types:'PDF ಅಥವಾ DOCX, 5MB ವರೆಗೆ',
+      skip_resume:'ರೆಸ್ಯೂಮ್ ಬಿಟ್ಟುಬಿಡಿ, ಸಂದರ್ಶನ ಪ್ರಾರಂಭಿಸಿ →', progress_label:'ಸೆಮ್ಯಾಂಟಿಕ್ JD-ಮ್ಯಾಚ್ ನಡೆಯುತ್ತಿದೆ…',
+      paste_resume_instead:'ಅಥವಾ ಬದಲಿಗೆ ನಿಮ್ಮ ರೆಸ್ಯೂಮ್ ಪಠ್ಯ ಅಂಟಿಸಿ →', upload_file_instead:'ಅಥವಾ ಬದಲಿಗೆ ಫೈಲ್ ಅಪ್‌ಲೋಡ್ ಮಾಡಿ →',
+      resume_text_label:'ರೆಸ್ಯೂಮ್ ಪಠ್ಯ', resume_text_placeholder:'ಇಲ್ಲಿ ನಿಮ್ಮ ರೆಸ್ಯೂಮ್ ಪಠ್ಯ ಅಂಟಿಸಿ…', analyze_pasted:'ಅಂಟಿಸಿದ ರೆಸ್ಯೂಮ್ ವಿಶ್ಲೇಷಿಸಿ',
+      jd_first_warning:'ಮೊದಲು ಮೇಲೆ ಉದ್ಯೋಗ ವಿವರಣೆ ಅಂಟಿಸಿ, ನಂತರ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.', paste_empty_warning:'ಮೊದಲು ನಿಮ್ಮ ರೆಸ್ಯೂಮ್ ಪಠ್ಯ ಅಂಟಿಸಿ.',
+      match_complete:'ಮ್ಯಾಚ್ ಪೂರ್ಣಗೊಂಡಿದೆ.',
+      gap_analysis:'ಕೊರತೆ ವಿಶ್ಲೇಷಣೆ', semantic_match:'ಸೆಮ್ಯಾಂಟಿಕ್ JD ಮ್ಯಾಚ್', matched_points:'ಹೊಂದಾಣಿಕೆಯ ಅಂಶಗಳು', gaps_label:'ಕೊರತೆಗಳು',
+      upload_different_instead:'ಬದಲಿಗೆ ಬೇರೆ ರೆಸ್ಯೂಮ್ ಅಪ್‌ಲೋಡ್ ಮಾಡಿ',
+      role_label:'ನೀವು ಸಂದರ್ಶನ ನೀಡುತ್ತಿರುವ ಹುದ್ದೆ', role_placeholder:'ಉದಾ: ಬ್ಯಾಕೆಂಡ್ ಎಂಜಿನಿಯರ್',
+      difficulty_label:'ಕಠಿಣತೆ', diff_easy:'ಸುಲಭ', diff_moderate:'ಸಾಧಾರಣ', diff_difficult:'ಕಠಿಣ',
+      diff_medium:'ಮಧ್ಯಮ', diff_hard:'ಕಠಿಣ', begin_interview:'ಸಂದರ್ಶನ ಪ್ರಾರಂಭಿಸಿ',
+      interview_title:'ಪ್ಯಾನಲ್ ಕೇಳುತ್ತಿದೆ', evaluator_01:'ಮೌಲ್ಯಮಾಪಕ 01', evaluator_02:'ಮೌಲ್ಯಮಾಪಕ 02', evaluator_03:'ಮೌಲ್ಯಮಾಪಕ 03',
+      persona_hr:'HR', persona_tech:'ಟೆಕ್ ಲೀಡ್', persona_hm:'ಹೈರಿಂಗ್ ಮ್ಯಾನೇಜರ್',
+      loading_question:'ನಿಮ್ಮ ಮೊದಲ ಪ್ರಶ್ನೆ ಲೋಡ್ ಆಗುತ್ತಿದೆ…', tap_to_answer:'ಉತ್ತರಿಸಲು ಟ್ಯಾಪ್ ಮಾಡಿ',
+      type_answer_instead:'ಬದಲಿಗೆ ನಿಮ್ಮ ಉತ್ತರ ಟೈಪ್ ಮಾಡಿ →', type_answer_placeholder:'ನಿಮ್ಮ ಉತ್ತರ ಟೈಪ್ ಮಾಡಿ…',
+      camera_toggle_on:'ಕ್ಯಾಮೆರಾ ಸ್ವಯಂ-ಪರಿಶೀಲನೆ ಆನ್ ಮಾಡಿ (ಬೀಟಾ)', camera_toggle_off:'ಕ್ಯಾಮೆರಾ ಸ್ವಯಂ-ಪರಿಶೀಲನೆ ಆಫ್ ಮಾಡಿ',
+      submit_answer:'ಉತ್ತರ ಸಲ್ಲಿಸಿ', end_interview:'ಮುಗಿಸಿ ಮತ್ತು ತೀರ್ಪು ನೋಡಿ',
+      pressure_mode_label:'ಪ್ರೆಶರ್ ಮೋಡ್ (ಸಮಯ ಮಿತಿಯಲ್ಲಿ ಸ್ವಯಂ ಸಲ್ಲಿಕೆ)',
+      no_answer_time_up:'(ಯಾವುದೇ ಉತ್ತರ ನೀಡಿಲ್ಲ — ಸಮಯ ಮಿತಿ ಮುಗಿದಿದೆ.)',
+      time_up_label:'ಸಮಯ ಮುಗಿದಿದೆ', no_code_time_up:'ಸಮಯ ಮುಗಿಯುವ ಮೊದಲು ಯಾವುದೇ ಕೋಡ್ ಬರೆದಿಲ್ಲ.',
+      results_title:'ಪ್ಯಾನಲ್‌ನ ತರ್ಕ', results_sub:'ಸ್ಕೋರ್ ಅಲ್ಲ. ಪೂರ್ಣ ಚರ್ಚೆ.',
+      coaching_label:'ಬಲಿಷ್ಠ ಉತ್ತರಗಳು — ಕೋಚಿಂಗ್', back_dashboard_btn:'ಡ್ಯಾಶ್‌ಬೋರ್ಡ್‌ಗೆ ಹಿಂತಿರುಗಿ',
+      download_verdict_report:'⬇ ತೀರ್ಪು ವರದಿ ಡೌನ್‌ಲೋಡ್ ಮಾಡಿ', download_progress_report:'⬇ ಪ್ರಗತಿ ವರದಿ ಡೌನ್‌ಲೋಡ್ ಮಾಡಿ',
+      q_asks:'ಕೇಳುತ್ತಾರೆ:', panel_colon:'ಪ್ಯಾನಲ್:', deliberating:'ಪ್ಯಾನಲ್ ಚರ್ಚಿಸುತ್ತಿದೆ…', retry:'ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ',
+      integrity_note_prefix:'⚠ ಈ ಸೆಷನ್‌ನಲ್ಲಿ:', integrity_tab_times:'{n} ಬಾರಿ ಟ್ಯಾಬ್ ಬಿಟ್ಟುಹೋಗಿದ್ದೀರಿ', integrity_paste_times:'{n} ಬಾರಿ ಉತ್ತರ ಪೇಸ್ಟ್ ಮಾಡಲು ಪ್ರಯತ್ನಿಸಿದ್ದೀರಿ',
+      strong_hire:'ಸ್ಟ್ರಾಂಗ್ ಹೈರ್', lean_hire:'ಲೀನ್ ಹೈರ್', discuss_hire:'ಚರ್ಚೆ ಅಗತ್ಯ',
+      quote_verified:'ಉಲ್ಲೇಖ ಪರಿಶೀಲಿಸಲಾಗಿದೆ', quote_unverified:'ಉಲ್ಲೇಖ ಪರಿಶೀಲಿಸಿಲ್ಲ',
+      you_said:'ನೀವು ಹೇಳಿದ್ದು:', stronger_version:'ಬಲಿಷ್ಠ ಆವೃತ್ತಿ:', score_label:'ಸ್ಕೋರ್', star_label:'STAR ಪತ್ತೆಯಾಗಿದೆ',
+      s_detected:'S ಪತ್ತೆ', t_detected:'T ಪತ್ತೆ', a_detected:'A ಪತ್ತೆ', r_detected:'R ಪತ್ತೆ',
+      speaking_pace:'ಮಾತನಾಡುವ ವೇಗ', filler_words:'ಭರ್ತಿ ಪದಗಳು (ಒಟ್ಟು)', pauses_avg:'ವಿರಾಮಗಳು (ಪ್ರತಿ ಉತ್ತರಕ್ಕೆ ಸರಾಸರಿ)',
+      eye_contact:'ಕಣ್ಣಿನ ಸಂಪರ್ಕ (ಸ್ವಯಂ-ವರದಿ)', questions_answered:'ಪ್ರಶ್ನೆ(ಗಳಿ)ಗೆ ಉತ್ತರಿಸಲಾಗಿದೆ', voice_delivery_read:'ಧ್ವನಿ ಮತ್ತು ಪ್ರಸ್ತುತಿ ಓದುವಿಕೆ:',
+      practice_title:'DSA ಅಭ್ಯಾಸ', practice_sub:'ಮಟ್ಟ ಮತ್ತು ಭಾಷೆ ಆಯ್ಕೆಮಾಡಿ, ನಿಮ್ಮ ಉತ್ತರ ಬರೆಯಿರಿ, ನಂತರ ಸ್ಕೋರ್‌ಗಾಗಿ ಸಲ್ಲಿಸಿ.',
+      prog_language_label:'ಪ್ರೋಗ್ರಾಮಿಂಗ್ ಭಾಷೆ', code_placeholder:'ನಿಮ್ಮ ಪರಿಹಾರವನ್ನು ಇಲ್ಲಿ ಬರೆಯಿರಿ…',
+      debug_mode_label:'ಡೀಬಗ್ ಮೋಡ್ (ಹಂತ-ಹಂತದ ವಿವರಣೆ + ಸುಳಿವುಗಳು, ಸ್ಕೋರ್ ಇಲ್ಲ)', submit_code:'ಸಲ್ಲಿಸಿ', run_debug:'ಡೀಬಗ್ ರನ್ ಮಾಡಿ', new_question:'ಹೊಸ ಪ್ರಶ್ನೆ →',
+      score_out_of:'/ 100', hint_label:'ಸುಳಿವು', reference_approach_label:'ಆದರ್ಶ ವಿಧಾನ',
+      grading:'ನಿಮ್ಮ ಉತ್ತರವನ್ನು ಪರಿಶೀಲಿಸಲಾಗುತ್ತಿದೆ…', debugging:'ನಿಮ್ಮ ಕೋಡ್ ಅನ್ನು ಹಂತ-ಹಂತವಾಗಿ ಪರಿಶೀಲಿಸಲಾಗುತ್ತಿದೆ…',
+      footer_tagline:'ಸ್ಕೋರ್ ಮಾತ್ರವಲ್ಲ, ತೀರ್ಪಿನ ಹಿಂದಿನ ತರ್ಕವನ್ನು ತೋರಿಸುವ AI-ಚಾಲಿತ ರೆಸ್ಯೂಮ್ ಮತ್ತು ಸಂದರ್ಶನ ಕೋಚ್.',
+      footer_product:'ಉತ್ಪನ್ನ', footer_upload_resume:'ರೆಸ್ಯೂಮ್ ಅಪ್‌ಲೋಡ್ ಮಾಡಿ', footer_case_file:'ಕೇಸ್ ಫೈಲ್',
+      footer_built_with:'ಸ್ಕೋರ್ ಅಲ್ಲ, ಪ್ಯಾನಲ್‌ನೊಂದಿಗೆ ನಿರ್ಮಿಸಲಾಗಿದೆ.',
+    },
+  };
+
+  function t(key){
+    const dict = LANG[state.language] || LANG.en;
+    return (dict && dict[key] != null) ? dict[key] : (LANG.en[key] != null ? LANG.en[key] : key);
+  }
+
+  function applyI18n(){
+    document.querySelectorAll('[data-i18n]').forEach(el => { el.innerHTML = t(el.getAttribute('data-i18n')); });
+    document.querySelectorAll('[data-i18n-ph]').forEach(el => { el.placeholder = t(el.getAttribute('data-i18n-ph')); });
+    document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('on', b.dataset.lang === state.language));
+    // A couple of programmatically-set labels don't live in static HTML,
+    // so they need a manual refresh whenever the language changes.
+    const authSubmitBtn = document.getElementById('authSubmit');
+    if(authSubmitBtn) authSubmitBtn.textContent = state.authMode === 'register' ? t('auth_submit_register') : t('enter_room');
+    const selfviewBtn = document.getElementById('selfviewToggle');
+    if(selfviewBtn){
+      selfviewBtn.textContent = window.selfViewOnForLabel ? t('camera_toggle_off') : t('camera_toggle_on');
+    }
+  }
+
+  // Tracks camera-toggle state purely so applyI18n() (above) can restore the
+  // right label after a language switch — the actual on/off logic lives in
+  // the separate <script type="module"> block further down. Attached to
+  // window because module scripts don't share a classic script's `let`
+  // scope, only its `var`/function/window-level bindings.
+  window.selfViewOnForLabel = false;
+
+  function setLanguage(lang){
+    if(state.currentSessionId){
+      // The current question was already generated (once) in whatever
+      // language the interview started with — switching mid-interview can't
+      // retroactively translate a question you've already been asked, and a
+      // half-translated session was confusing. Locked until the session ends;
+      // pick your language before starting the next interview.
+      return;
+    }
+    state.language = lang;
+    localStorage.setItem('hr_lang', lang);
+    applyI18n();
+  }
+
+  function lockLanguageSwitch(locked){
+    document.querySelectorAll('.lang-btn').forEach(b => { b.disabled = locked; });
+  }
+
   const state = {
     loggedIn:false, name:'', authMode:'signin', token:null,
     currentSessionId:null, currentTurnId:null, currentPersona:null,
     lastQuestion:'', lastVoiceSignal:null,
     resumeAnalysisId:null, resumeFilename:null,
     awaitingVerdict:false,
+    language: localStorage.getItem('hr_lang') || 'en',
+    dsaDifficulty:'medium', dsaProgLanguage:'python', dsaDebugMode:false,
+    dsaCurrentQuestionId:null, dsaSeenQuestionIds:[],
+    pressureMode:false, pressureSeconds:60,
+    dsaPressureMode:false, dsaPressureSeconds:300,
   };
 
   function authHeaders(extra){
@@ -683,7 +1123,7 @@
     return res.status === 204 ? null : res.json();
   }
 
-  const gated = ['dashboard','upload','interview','results'];
+  const gated = ['dashboard','upload','interview','results','dsa'];
   const publicViews = ['landing','auth'];
 
   function setAuthTab(mode){
@@ -691,7 +1131,7 @@
     document.getElementById('tabSignin').classList.toggle('active', mode==='signin');
     document.getElementById('tabRegister').classList.toggle('active', mode==='register');
     document.getElementById('fieldName').style.display = mode==='register' ? 'block' : 'none';
-    document.getElementById('authSubmit').textContent = mode==='register' ? 'Create Case File' : 'Enter the Room';
+    document.getElementById('authSubmit').textContent = mode==='register' ? t('auth_submit_register') : t('enter_room');
     document.getElementById('authError').classList.remove('show');
   }
 
@@ -813,6 +1253,7 @@
     // async check can resolve after our own render and stomp the real
     // question with a stale "no interview in progress" message.
     if(view==='interview' && !opts.skipEntry) renderInterviewEntry();
+    if(view==='dsa' && !state.dsaCurrentQuestionId) loadDsaQuestion();
     if(view==='landing') requestAnimationFrame(drawLandingChart);
     initReveal();
   }
@@ -932,6 +1373,7 @@
   function capWord(w){ return w.charAt(0).toUpperCase()+w.slice(1); }
 
   async function renderDashboard(){
+    lockLanguageSwitch(false);
     document.getElementById('dashName').textContent = state.name ? ', ' + state.name : '';
 
     const banner = document.getElementById('resumeInterviewBanner');
@@ -952,6 +1394,7 @@
     list.innerHTML = '<div class="empty-note">Loading your case file…</div>';
     try {
       const stats = await api('/dashboard/stats');
+      state.lastStats = stats;
       animateCount(document.getElementById('statSessions'), stats.sessions_completed);
       animateCount(document.getElementById('statResumes'), stats.resumes_analyzed);
       document.getElementById('statVerdict').textContent = stats.history.length ? capWord(stats.history[0].overall_verdict) : '—';
@@ -986,6 +1429,7 @@
 
     try {
       const overview = await api('/dashboard/overview');
+      state.lastOverview = overview;
       renderOverviewPanel(overview);
     } catch(e){
       document.getElementById('overviewSummary').textContent = 'Could not load overview.';
@@ -1008,40 +1452,66 @@
         + items.map(i => '<li style="font-size:13px; color:var(--ink); margin-bottom:5px; line-height:1.4;">'+escapeHtml(i)+'</li>').join('')
         + '</ul></div>';
     }
+    const RESOURCES = [
+      {name:'LeetCode', url:'https://leetcode.com', note:'DSA practice by topic & difficulty'},
+      {name:'NeetCode Roadmap', url:'https://neetcode.io/roadmap', note:'Structured DSA study order'},
+      {name:'Pramp', url:'https://www.pramp.com', note:'Free live mock interviews with peers'},
+      {name:'Big Interview', url:'https://biginterview.com', note:'STAR method & behavioral prep'},
+      {name:'Glassdoor Interview Questions', url:'https://www.glassdoor.com/Interview/index.htm', note:'Real questions by company/role'},
+    ];
+    function resourceList(){
+      return '<div style="margin-top:6px;">'
+        + '<div style="font-size:12px; font-weight:600; color:var(--ink); margin-bottom:6px;">' + escapeHtml(t('recommended_resources')) + '</div>'
+        + '<ul style="margin:0; padding-left:18px;">'
+        + RESOURCES.map(r => '<li style="font-size:13px; margin-bottom:5px; line-height:1.4;">'
+            + '<a href="'+r.url+'" target="_blank" rel="noopener" style="color:var(--stamp); text-decoration:underline;">'+escapeHtml(r.name)+'</a>'
+            + ' <span style="color:var(--ink-soft);">— '+escapeHtml(r.note)+'</span></li>').join('')
+        + '</ul></div>';
+    }
     panel.innerHTML = '<div class="card" style="padding:18px 20px;">'
-      + list('Strengths', overview.strengths, 'var(--verify-deep)')
-      + list('Where to improve', overview.improve, 'var(--rust)')
+      + list(t('strengths_label'), overview.strengths, 'var(--verify-deep)')
+      + list(t('where_to_improve'), overview.improve, 'var(--rust)')
       + (!overview.strengths.length && !overview.improve.length ? '<p class="mono" style="font-size:12px; color:var(--ink-soft);">Not enough signal yet — complete an interview with mic/camera on to see this.</p>' : '')
+      + resourceList()
       + '</div>';
   }
 
   function drawGrowthChart(history){
-    const card = document.getElementById('growthChartCard');
-    const label = document.getElementById('growthLabel');
-    const completed = history.filter(h => h.status === 'completed').slice().reverse(); // oldest first
-    if(completed.length < 2){
-      card.style.display = 'none';
-      label.style.display = 'none';
-      return;
+    try {
+      const card = document.getElementById('growthChartCard');
+      const label = document.getElementById('growthLabel');
+      const completed = history.filter(h => h.status === 'completed').slice().reverse(); // oldest first
+      if(completed.length < 1){
+        card.style.display = 'none';
+        label.style.display = 'none';
+        return;
+      }
+      card.style.display = 'block';
+      label.style.display = 'block';
+      const scoreMap = { strong: 3, lean: 2, discuss: 1 };
+      const values = completed.map(h => scoreMap[h.overall_verdict] || 1);
+      const svg = document.getElementById('growthChart');
+      const w=560, h=160, padL=30, padR=10, padT=14, padB=24;
+      const n = values.length;
+      const x = i => n===1 ? w/2 : padL + (i*(w-padL-padR)/(n-1));
+      const y = v => h - padB - ((v-1)/2)*(h-padT-padB);
+      const pathFor = arr => arr.map((v,i) => (i===0?'M':'L')+x(i)+','+y(v)).join(' ');
+      let content = '';
+      for(let g=0; g<=2; g++){
+        const gy = padT + g*(h-padT-padB)/2;
+        content += '<line x1="'+padL+'" y1="'+gy+'" x2="'+(w-padR)+'" y2="'+gy+'" stroke="rgba(28,26,22,0.08)" stroke-width="1"/>';
+      }
+      if(n > 1){
+        content += '<path d="'+pathFor(values)+'" fill="none" stroke="#2c6459" stroke-width="2.5"/>';
+      }
+      values.forEach((v,i) => { content += '<circle cx="'+x(i)+'" cy="'+y(v)+'" r="4" fill="#2c6459"/>'; });
+      if(n === 1){
+        content += '<text x="'+(w/2)+'" y="'+(h-4)+'" font-family="IBM Plex Mono, monospace" font-size="10" fill="#6b6459" text-anchor="middle">'+escapeHtml(t('growth_needs_more'))+'</text>';
+      }
+      svg.innerHTML = content;
+    } catch(e){
+      console.error('drawGrowthChart failed:', e);
     }
-    card.style.display = 'block';
-    label.style.display = 'block';
-    const scoreMap = { strong: 3, lean: 2, discuss: 1 };
-    const values = completed.map(h => scoreMap[h.overall_verdict] || 1);
-    const svg = document.getElementById('growthChart');
-    const w=560, h=160, padL=30, padR=10, padT=14, padB=24;
-    const n = values.length;
-    const x = i => n===1 ? padL : padL + (i*(w-padL-padR)/(n-1));
-    const y = v => h - padB - ((v-1)/2)*(h-padT-padB);
-    const pathFor = arr => arr.map((v,i) => (i===0?'M':'L')+x(i)+','+y(v)).join(' ');
-    let content = '';
-    for(let g=0; g<=2; g++){
-      const gy = padT + g*(h-padT-padB)/2;
-      content += '<line x1="'+padL+'" y1="'+gy+'" x2="'+(w-padR)+'" y2="'+gy+'" stroke="rgba(28,26,22,0.08)" stroke-width="1"/>';
-    }
-    content += '<path d="'+pathFor(values)+'" fill="none" stroke="#2c6459" stroke-width="2.5"/>';
-    values.forEach((v,i) => { content += '<circle cx="'+x(i)+'" cy="'+y(v)+'" r="4" fill="#2c6459"/>'; });
-    svg.innerHTML = content;
   }
 
   async function openSessionDetail(sessionId, roleTitle){
@@ -1053,11 +1523,12 @@
     overlay.style.display = 'block';
     try {
       const data = await api(`/dashboard/session/${sessionId}`);
-      const labelMap = {hr:'HR', tech:'Tech Lead', hm:'Hiring Manager'};
+      const labelMap = {hr:t('persona_hr'), tech:t('persona_tech'), hm:t('persona_hm')};
+      const verdictLabelMap = {strong:t('strong_hire'), lean:t('lean_hire'), discuss:t('discuss_hire')};
       document.getElementById('sessionDetailVerdicts').innerHTML = data.verdicts.map(v => {
         const cls = v.verdict === 'strong' ? 'strong' : (v.verdict === 'lean' ? 'lean' : 'discuss');
         return '<div class="card verdict-card '+cls+'"><div class="role">'+(labelMap[v.persona]||v.persona)+'</div>'
-          + '<div class="stamp-word">'+capWord(v.verdict)+' Hire</div>'
+          + '<div class="stamp-word">'+(verdictLabelMap[v.verdict] || capWord(v.verdict))+'</div>'
           + '<p>'+escapeHtml(v.reasoning || '')+'</p></div>';
       }).join('') || '<div class="empty-note">No verdicts recorded for this session.</div>';
       document.getElementById('sessionDetailTranscript').textContent = data.transcript || '(empty transcript)';
@@ -1093,30 +1564,34 @@
 
   /* ---- landing chart (inline SVG line chart, sample/illustrative data) ---- */
   function drawLandingChart(){
-    const svg = document.getElementById('landingChart');
-    if(!svg || svg.dataset.drawn) return;
-    const scoreOnly = [30,33,31,35,34,36];
-    const panel      = [32,44,53,63,71,79];
-    const w=560, h=220, padL=30, padR=10, padT=10, padB=28;
-    const n = scoreOnly.length;
-    const x = i => padL + (i*(w-padL-padR)/(n-1));
-    const y = v => h - padB - (v/100)*(h-padT-padB);
-    function pathFor(arr){ return arr.map((v,i) => (i===0?'M':'L')+x(i)+','+y(v)).join(' '); }
-    let svgContent = '';
-    for(let g=0; g<=4; g++){
-      const gy = padT + g*(h-padT-padB)/4;
-      svgContent += '<line x1="'+padL+'" y1="'+gy+'" x2="'+(w-padR)+'" y2="'+gy+'" stroke="rgba(28,26,22,0.08)" stroke-width="1"/>';
+    try {
+      const svg = document.getElementById('landingChart');
+      if(!svg || svg.dataset.drawn) return;
+      const scoreOnly = [30,33,31,35,34,36];
+      const panel      = [32,44,53,63,71,79];
+      const w=560, h=220, padL=30, padR=10, padT=10, padB=28;
+      const n = scoreOnly.length;
+      const x = i => padL + (i*(w-padL-padR)/(n-1));
+      const y = v => h - padB - (v/100)*(h-padT-padB);
+      function pathFor(arr){ return arr.map((v,i) => (i===0?'M':'L')+x(i)+','+y(v)).join(' '); }
+      let svgContent = '';
+      for(let g=0; g<=4; g++){
+        const gy = padT + g*(h-padT-padB)/4;
+        svgContent += '<line x1="'+padL+'" y1="'+gy+'" x2="'+(w-padR)+'" y2="'+gy+'" stroke="rgba(28,26,22,0.08)" stroke-width="1"/>';
+      }
+      svgContent += '<path d="'+pathFor(scoreOnly)+'" fill="none" stroke="#5b5648" stroke-width="2" stroke-dasharray="5,4"/>';
+      svgContent += '<path d="'+pathFor(panel)+'" fill="none" stroke="#2c6459" stroke-width="2.5"/>';
+      panel.forEach((v,i) => { svgContent += '<circle cx="'+x(i)+'" cy="'+y(v)+'" r="3.5" fill="#2c6459"/>'; });
+      const lastI = n-1;
+      svgContent += '<circle cx="'+x(lastI)+'" cy="'+y(panel[lastI])+'" r="6" fill="#a3402c"/>';
+      for(let i=0;i<n;i++){
+        svgContent += '<text x="'+x(i)+'" y="'+(h-8)+'" font-family="IBM Plex Mono, monospace" font-size="10" fill="#5b5648" text-anchor="middle">S'+(i+1)+'</text>';
+      }
+      svg.innerHTML = svgContent;
+      svg.dataset.drawn = '1';
+    } catch(e){
+      console.error('drawLandingChart failed:', e);
     }
-    svgContent += '<path d="'+pathFor(scoreOnly)+'" fill="none" stroke="#5b5648" stroke-width="2" stroke-dasharray="5,4"/>';
-    svgContent += '<path d="'+pathFor(panel)+'" fill="none" stroke="#2c6459" stroke-width="2.5"/>';
-    panel.forEach((v,i) => { svgContent += '<circle cx="'+x(i)+'" cy="'+y(v)+'" r="3.5" fill="#2c6459"/>'; });
-    const lastI = n-1;
-    svgContent += '<circle cx="'+x(lastI)+'" cy="'+y(panel[lastI])+'" r="6" fill="#a3402c"/>';
-    for(let i=0;i<n;i++){
-      svgContent += '<text x="'+x(i)+'" y="'+(h-8)+'" font-family="IBM Plex Mono, monospace" font-size="10" fill="#5b5648" text-anchor="middle">S'+(i+1)+'</text>';
-    }
-    svg.innerHTML = svgContent;
-    svg.dataset.drawn = '1';
   }
 
   /* ---- upload: real resume analysis against the backend ---- */
@@ -1128,6 +1603,52 @@
   dropzone.addEventListener('click', () => document.getElementById('fileInput').click());
   document.getElementById('fileInput').addEventListener('change', e => { if(e.target.files[0]) handleFile(e.target.files[0]); });
 
+  function toggleResumeMode(){
+    const pasteBlock = document.getElementById('resumePasteBlock');
+    const isPasteShown = pasteBlock.style.display !== 'none';
+    pasteBlock.style.display = isPasteShown ? 'none' : 'block';
+    document.getElementById('dropzone').style.display = isPasteShown ? 'block' : 'none';
+    document.getElementById('resumeModeToggleLink').textContent = isPasteShown ? t('paste_resume_instead') : t('upload_file_instead');
+  }
+
+  async function analyzePastedResume(){
+    const text = document.getElementById('resumePasteText').value.trim();
+    const jdText = document.getElementById('jdText').value.trim();
+    if(!jdText){
+      document.getElementById('progressLabel').textContent = t('jd_first_warning');
+      document.getElementById('progressWrap').classList.add('show');
+      return;
+    }
+    if(!text){
+      document.getElementById('progressLabel').textContent = t('paste_empty_warning');
+      document.getElementById('progressWrap').classList.add('show');
+      return;
+    }
+    document.getElementById('progressWrap').classList.add('show');
+    document.getElementById('progressLabel').textContent = t('progress_label');
+    const fill = document.getElementById('progressFill');
+    fill.style.width = '0%';
+    setTimeout(() => { fill.style.width = '85%'; }, 60);
+    try {
+      const form = new FormData();
+      form.append('jd_text', jdText);
+      form.append('resume_text', text);
+      const result = await api('/resume/analyze', { method:'POST', body: form, isForm: true });
+      state.resumeAnalysisId = result.id;
+      state.resumeFilename = result.filename;
+      document.getElementById('reuseResumeCard').style.display = 'none';
+      fill.style.width = '100%';
+      document.getElementById('progressLabel').textContent = t('match_complete');
+      setMatchScore(result.match_score);
+      document.getElementById('matchedList').innerHTML = result.matched_points.map(p => '<li>'+escapeHtml(p)+'</li>').join('') || '<li>—</li>';
+      document.getElementById('gapList').innerHTML = result.gap_points.map(p => '<li>'+escapeHtml(p)+'</li>').join('') || '<li>None flagged</li>';
+      document.getElementById('matchCard').classList.add('show');
+      document.getElementById('beginRow').style.display = 'block';
+    } catch(e){
+      document.getElementById('progressLabel').textContent = 'Analysis failed: ' + e.message;
+    }
+  }
+
   async function handleFile(file){
     selectedFile = file;
     document.getElementById('fileName').textContent = file.name;
@@ -1135,13 +1656,13 @@
 
     const jdText = document.getElementById('jdText').value.trim();
     if(!jdText){
-      document.getElementById('progressLabel').textContent = 'Paste the job description above first, then re-drop the file.';
+      document.getElementById('progressLabel').textContent = t('jd_first_warning');
       document.getElementById('progressWrap').classList.add('show');
       return;
     }
 
     document.getElementById('progressWrap').classList.add('show');
-    document.getElementById('progressLabel').textContent = 'Running semantic JD-match…';
+    document.getElementById('progressLabel').textContent = t('progress_label');
     const fill = document.getElementById('progressFill');
     fill.style.width = '0%';
     setTimeout(() => { fill.style.width = '85%'; }, 60);
@@ -1155,7 +1676,7 @@
       state.resumeFilename = result.filename;
       document.getElementById('reuseResumeCard').style.display = 'none';
       fill.style.width = '100%';
-      document.getElementById('progressLabel').textContent = 'Match complete.';
+      document.getElementById('progressLabel').textContent = t('match_complete');
       setMatchScore(result.match_score);
       document.getElementById('matchedList').innerHTML = result.matched_points.map(p => '<li>'+escapeHtml(p)+'</li>').join('') || '<li>—</li>';
       document.getElementById('gapList').innerHTML = result.gap_points.map(p => '<li>'+escapeHtml(p)+'</li>').join('') || '<li>None flagged</li>';
@@ -1185,7 +1706,7 @@
     goTo('interview', {skipEntry:true});
     document.getElementById('questionText').textContent = 'Contacting the panel…';
     try {
-      const data = await api('/interview/start', { method:'POST', body: { role_title: roleTitle, resume_analysis_id: state.resumeAnalysisId || null, difficulty: state.difficulty || 'moderate' } });
+      const data = await api('/interview/start', { method:'POST', body: { role_title: roleTitle, resume_analysis_id: state.resumeAnalysisId || null, difficulty: state.difficulty || 'moderate', language: state.language || 'en' } });
       applyQuestion(data);
     } catch(e){
       const msg = e.message === 'Failed to fetch'
@@ -1205,8 +1726,8 @@
     state.lastVoiceSignal = null;
 
     document.querySelectorAll('.persona-pill').forEach(p => p.classList.toggle('active', p.dataset.p===data.persona));
-    const labelMap = {hr:'HR', tech:'Tech Lead', hm:'Hiring Manager'};
-    document.getElementById('qLabel').textContent = (labelMap[data.persona]||data.persona) + ' asks:';
+    const labelMap = {hr:t('persona_hr'), tech:t('persona_tech'), hm:t('persona_hm')};
+    document.getElementById('qLabel').textContent = (labelMap[data.persona]||data.persona) + ' ' + t('q_asks');
     document.getElementById('questionText').textContent = data.question;
     document.getElementById('caption').innerHTML = '';
     document.getElementById('signalNote').textContent = '';
@@ -1216,7 +1737,9 @@
     // for the rest of the session.
     const micBtn = document.getElementById('micBtn');
     if(micBtn) micBtn.style.display = '';
-    document.getElementById('micStatus').textContent = 'Tap to answer';
+    document.getElementById('micStatus').textContent = t('tap_to_answer');
+    if(state.pressureMode) startInterviewTimer(); else clearInterviewTimer();
+    lockLanguageSwitch(true);
   }
 
   let recognizer = null;
@@ -1370,12 +1893,14 @@
 
   function showTypedFallback(){
     const cap = document.getElementById('caption');
-    cap.innerHTML = '<textarea id="typedAnswer" placeholder="Type your answer…" style="width:100%; min-height:80px; padding:10px; border:1.5px solid var(--line); border-radius:6px; background:var(--paper-card); font-family:inherit; font-size:14px;"></textarea>';
+    cap.innerHTML = '<textarea id="typedAnswer" placeholder="'+t('type_answer_placeholder')+'" style="width:100%; min-height:80px; padding:10px; border:1.5px solid var(--line); border-radius:6px; background:var(--paper-card); font-family:inherit; font-size:14px;"></textarea>';
     document.getElementById('typedAnswer').addEventListener('paste', function(e){
       e.preventDefault();
       state.pasteAttempts = (state.pasteAttempts || 0) + 1;
       flagInterview('paste_attempt');
     });
+    document.getElementById('submitAnswerBtn').style.display = 'inline-block';
+    document.getElementById('typedAnswer').focus();
   }
 
   // Fire-and-forget: a failed flag ping shouldn't interrupt the interview.
@@ -1391,9 +1916,10 @@
     }
   });
 
-  async function submitTypedAnswer(){
+  async function submitTypedAnswer(forceText){
     const typedEl = document.getElementById('typedAnswer');
-    const answer = typedEl ? typedEl.value.trim() : finalTranscript.trim();
+    let answer = typedEl ? typedEl.value.trim() : finalTranscript.trim();
+    if(!answer && forceText){ answer = forceText; }
     if(!answer) return;
     const btn = document.getElementById('submitAnswerBtn');
     btn.disabled = true;
@@ -1423,6 +1949,8 @@
   }
 
   async function endInterview(){
+    clearInterviewTimer();
+    lockLanguageSwitch(false);
     if(!state.currentSessionId){ goTo('dashboard'); return; }
     if((state.answeredCount || 0) < 3){
       const ok = confirm('Only ' + (state.answeredCount || 0) + ' of 3 evaluators have heard an answer from you. The rest will be marked "not evaluated" instead of a real verdict. End anyway?');
@@ -1453,8 +1981,8 @@
     if(typedEl && typedEl.value.trim()){
       await submitTypedAnswer();
     }
-    document.getElementById('qLabel').textContent = 'Panel:';
-    document.getElementById('questionText').textContent = 'The panel is deliberating…';
+    document.getElementById('qLabel').textContent = t('panel_colon');
+    document.getElementById('questionText').textContent = t('deliberating');
     state.awaitingVerdict = true;
     try {
       const data = await api(`/interview/${state.currentSessionId}/deliberate`, { method:'POST' });
@@ -1478,24 +2006,26 @@
       // clears so navigating away and back to Interview properly re-checks
       // the real state instead of showing this stale message forever.
       state.awaitingVerdict = false;
-      document.getElementById('qLabel').textContent = 'Panel:';
+      document.getElementById('qLabel').textContent = t('panel_colon');
       document.getElementById('questionText').innerHTML =
         'Could not reach a verdict: ' + escapeHtml(e.message) +
-        '<br><button class="pill-btn" style="margin-top:12px;" onclick="endInterview()">Retry</button>';
+        '<br><button class="pill-btn" style="margin-top:12px;" onclick="endInterview()">' + t('retry') + '</button>';
     }
   }
 
   function renderResults(data){
-    const labelMap = {hr:'HR', tech:'Tech Lead', hm:'Hiring Manager'};
+    state.lastResultsData = data;
+    const labelMap = {hr:t('persona_hr'), tech:t('persona_tech'), hm:t('persona_hm')};
+    const verdictLabelMap = {strong:t('strong_hire'), lean:t('lean_hire'), discuss:t('discuss_hire')};
     const grid = document.getElementById('verdictGrid');
     grid.innerHTML = data.verdicts.map(v => {
       const cls = v.verdict === 'strong' ? 'strong' : (v.verdict === 'lean' ? 'lean' : 'discuss');
       const flag = v.quote_verified
-        ? '<span class="quote-flag ok">Quote verified</span>'
-        : '<span class="quote-flag bad">Quote unverified</span>';
+        ? '<span class="quote-flag ok">'+t('quote_verified')+'</span>'
+        : '<span class="quote-flag bad">'+t('quote_unverified')+'</span>';
       return '<div class="card verdict-card '+cls+'">'
         + '<div class="role">'+(labelMap[v.persona]||v.persona)+'</div>'
-        + '<div class="stamp-word">'+capWord(v.verdict)+' Hire</div>'
+        + '<div class="stamp-word">'+(verdictLabelMap[v.verdict] || capWord(v.verdict))+'</div>'
         + '<p>'+escapeHtml(v.reasoning || 'No reasoning returned.')+'</p>'
         + (v.quote ? '<p style="font-style:italic;">“'+escapeHtml(v.quote)+'”</p>' : '')
         + flag
@@ -1512,7 +2042,9 @@
       const pastes = data.paste_attempts || 0;
       if(switches || pastes){
         integrityEl.style.display = 'block';
-        integrityEl.textContent = '⚠ Left the tab ' + switches + ' time(s), attempted to paste an answer ' + pastes + ' time(s) during this session.';
+        integrityEl.textContent = t('integrity_note_prefix') + ' '
+          + t('integrity_tab_times').replace('{n}', switches) + ', '
+          + t('integrity_paste_times').replace('{n}', pastes) + '.';
       } else {
         integrityEl.style.display = 'none';
       }
@@ -1522,14 +2054,25 @@
     const coachingList = document.getElementById('coachingList');
     if(data.coaching && data.coaching.length){
       coachingLabel.style.display = 'block';
-      coachingList.innerHTML = data.coaching.map(c => (
-        '<div class="card" style="padding:18px 20px; margin-bottom:14px;">'
+      coachingList.innerHTML = data.coaching.map(c => {
+        const star = c.star_detected || {s:false,t:false,a:false,r:false};
+        // Only render a chip for what was actually detected — a grey/faded
+        // chip for something NOT found adds noise without adding signal.
+        const chip = (flag, label) => flag ? '<span class="star-chip hit">'+label+'</span>' : '';
+        const anyStar = star.s || star.t || star.a || star.r;
+        const scoreVal = (typeof c.score === 'number') ? c.score : 0;
+        return '<div class="card" style="padding:18px 20px; margin-bottom:14px;">'
         + '<div class="q-label" style="margin-bottom:8px;">'+escapeHtml(c.question)+'</div>'
-        + '<div style="font-size:13.5px; color:var(--ink-soft); margin-bottom:10px;"><strong style="color:var(--ink);">You said:</strong> '+escapeHtml(c.your_answer)+'</div>'
-        + '<div style="font-size:13.5px; margin-bottom:8px;"><strong style="color:var(--verify-deep);">Stronger version:</strong> '+escapeHtml(c.stronger_answer)+'</div>'
-        + '<div style="font-size:12px; color:var(--ink-soft); font-style:italic;">'+escapeHtml(c.why_its_stronger)+'</div>'
-        + '</div>'
-      )).join('');
+        + '<div style="font-size:13.5px; color:var(--ink-soft); margin-bottom:10px;"><strong style="color:var(--ink);">'+t('you_said')+'</strong> '+escapeHtml(c.your_answer)+'</div>'
+        + '<div style="font-size:13.5px; margin-bottom:8px;"><strong style="color:var(--verify-deep);">'+t('stronger_version')+'</strong> '+escapeHtml(c.stronger_answer)+'</div>'
+        + '<div style="font-size:12px; color:var(--ink-soft); font-style:italic; margin-bottom:10px;">'+escapeHtml(c.why_its_stronger)+'</div>'
+        + '<div class="mono" style="font-size:11.5px; color:var(--ink-soft);">'+t('score_label')+': <strong style="color:var(--ink);">'+scoreVal+'</strong> / 100</div>'
+        + (anyStar ? ('<div class="star-chip-row">'
+            + chip(star.s, t('s_detected')) + chip(star.t, t('t_detected'))
+            + chip(star.a, t('a_detected')) + chip(star.r, t('r_detected'))
+          + '</div>') : '')
+        + '</div>';
+      }).join('');
     } else {
       coachingLabel.style.display = 'none';
       coachingList.innerHTML = '';
@@ -1543,7 +2086,8 @@
     const panel = document.getElementById(targetId || 'performancePanel');
     const sections = (perf && perf.sections) || {};
     const order = ['hr','tech','hm'];
-    const labelMap = {hr:'HR', tech:'Tech Lead', hm:'Hiring Manager'};
+    const labelMap = {hr:t('persona_hr'), tech:t('persona_tech'), hm:t('persona_hm')};
+    const verdictLabelMap = {strong:t('strong_hire'), lean:t('lean_hire'), discuss:t('discuss_hire')};
     const keys = order.filter(k => sections[k]);
 
     if(!keys.length){
@@ -1568,16 +2112,338 @@
       return '<div class="card" style="padding:16px 20px; margin-bottom:14px;">'
         + '<div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:12px;">'
         + '<div class="role" style="font-weight:600;">'+labelMap[k]+'</div>'
-        + '<span class="stamp-word '+verdictCls+'" style="font-size:11px;">'+capWord(s.verdict)+'</span>'
+        + '<span class="stamp-word '+verdictCls+'" style="font-size:11px;">'+(verdictLabelMap[s.verdict] || capWord(s.verdict))+'</span>'
         + '</div>'
-        + bar('Speaking pace', s.avg_wpm, 200, ' wpm')
-        + bar('Filler words (total)', s.total_fillers, 20, '')
-        + bar('Pauses (avg per answer)', s.avg_pauses, 10, '')
-        + bar('Eye contact (self-reported)', s.avg_eye_contact_pct, 100, '%')
-        + '<div class="mono" style="font-size:10.5px; color:var(--ink-soft); margin-top:4px;">'+s.turns_answered+' question(s) answered</div>'
-        + (s.delivery_note ? '<div style="font-size:12.5px; color:var(--ink); margin-top:10px; padding-top:10px; border-top:1px solid var(--line);"><strong>Voice &amp; delivery read:</strong> '+escapeHtml(s.delivery_note)+'</div>' : '')
+        + bar(t('speaking_pace'), s.avg_wpm, 200, ' wpm')
+        + bar(t('filler_words'), s.total_fillers, 20, '')
+        + bar(t('pauses_avg'), s.avg_pauses, 10, '')
+        + bar(t('eye_contact'), s.avg_eye_contact_pct, 100, '%')
+        + '<div class="mono" style="font-size:10.5px; color:var(--ink-soft); margin-top:4px;">'+s.turns_answered+' '+t('questions_answered')+'</div>'
+        + (s.delivery_note ? '<div style="font-size:12.5px; color:var(--ink); margin-top:10px; padding-top:10px; border-top:1px solid var(--line);"><strong>'+t('voice_delivery_read')+'</strong> '+escapeHtml(s.delivery_note)+'</div>' : '')
         + '</div>';
     }).join('');
+  }
+
+  // ===================================================================
+  // Pressure mode — interview
+  // ===================================================================
+  let interviewTimerInterval = null;
+  let interviewTimerRemaining = 0;
+
+  function togglePressureMode(){
+    state.pressureMode = !state.pressureMode;
+    document.getElementById('pressureSwitch').classList.toggle('on', state.pressureMode);
+    if(state.pressureMode && state.currentTurnId){
+      startInterviewTimer();
+    } else {
+      clearInterviewTimer();
+    }
+  }
+
+  function setPressureSeconds(v){
+    state.pressureSeconds = parseInt(v, 10) || 60;
+    if(state.pressureMode && state.currentTurnId) startInterviewTimer();
+  }
+
+  function clearInterviewTimer(){
+    if(interviewTimerInterval) clearInterval(interviewTimerInterval);
+    interviewTimerInterval = null;
+    const el = document.getElementById('interviewTimerDisplay');
+    if(el) el.style.display = 'none';
+    const sw = document.getElementById('pressureSwitch');
+    const sel = document.getElementById('pressureSecondsSelect');
+    if(sw) sw.disabled = false;
+    if(sel) sel.disabled = false;
+  }
+
+  function startInterviewTimer(){
+    clearInterviewTimer();
+    if(!state.pressureMode) return;
+    interviewTimerRemaining = state.pressureSeconds;
+    const el = document.getElementById('interviewTimerDisplay');
+    el.style.display = 'inline';
+    // Locked for the duration of this question — changing the time limit or
+    // flipping pressure mode off mid-countdown would just be confusing.
+    document.getElementById('pressureSwitch').disabled = true;
+    document.getElementById('pressureSecondsSelect').disabled = true;
+    const render = () => {
+      const m = Math.floor(interviewTimerRemaining / 60);
+      const s = interviewTimerRemaining % 60;
+      el.textContent = m + ':' + String(s).padStart(2, '0');
+    };
+    render();
+    interviewTimerInterval = setInterval(() => {
+      interviewTimerRemaining--;
+      render();
+      if(interviewTimerRemaining <= 0){
+        clearInterviewTimer();
+        pressureTimeUpInterview();
+      }
+    }, 1000);
+  }
+
+  function pressureTimeUpInterview(){
+    if(!state.currentTurnId || state.awaitingVerdict) return;
+    if(listening){
+      stopListening();
+      // stopListening() only submits if speech was actually captured — if
+      // the mic was on but silent the whole time, force it through anyway
+      // so pressure mode never just stalls on a blank answer.
+      setTimeout(() => {
+        if(!finalTranscript.trim() && state.currentTurnId && !state.awaitingVerdict){
+          submitTypedAnswer(t('no_answer_time_up'));
+        }
+      }, 400);
+    } else {
+      submitTypedAnswer(t('no_answer_time_up'));
+    }
+  }
+
+  // ===================================================================
+  // Pressure mode — DSA
+  // ===================================================================
+  let dsaTimerInterval = null;
+  let dsaTimerRemaining = 0;
+
+  function toggleDsaPressureMode(){
+    state.dsaPressureMode = !state.dsaPressureMode;
+    document.getElementById('dsaPressureSwitch').classList.toggle('on', state.dsaPressureMode);
+    if(state.dsaPressureMode && state.dsaCurrentQuestionId){
+      startDsaTimer();
+    } else {
+      clearDsaTimer();
+    }
+  }
+
+  function setDsaPressureSeconds(v){
+    state.dsaPressureSeconds = parseInt(v, 10) || 300;
+    if(state.dsaPressureMode && state.dsaCurrentQuestionId) startDsaTimer();
+  }
+
+  function clearDsaTimer(){
+    if(dsaTimerInterval) clearInterval(dsaTimerInterval);
+    dsaTimerInterval = null;
+    const el = document.getElementById('dsaTimerDisplay');
+    if(el) el.style.display = 'none';
+    const sw = document.getElementById('dsaPressureSwitch');
+    const sel = document.getElementById('dsaPressureSecondsSelect');
+    if(sw) sw.disabled = false;
+    if(sel) sel.disabled = false;
+  }
+
+  function startDsaTimer(){
+    clearDsaTimer();
+    if(!state.dsaPressureMode) return;
+    dsaTimerRemaining = state.dsaPressureSeconds;
+    const el = document.getElementById('dsaTimerDisplay');
+    el.style.display = 'inline';
+    document.getElementById('dsaPressureSwitch').disabled = true;
+    document.getElementById('dsaPressureSecondsSelect').disabled = true;
+    const render = () => {
+      const m = Math.floor(dsaTimerRemaining / 60);
+      const s = dsaTimerRemaining % 60;
+      el.textContent = m + ':' + String(s).padStart(2, '0');
+    };
+    render();
+    dsaTimerInterval = setInterval(() => {
+      dsaTimerRemaining--;
+      render();
+      if(dsaTimerRemaining <= 0){
+        clearDsaTimer();
+        submitDsaAnswer(true);
+      }
+    }, 1000);
+  }
+
+  // ===================================================================
+  // DSA Practice page
+  // ===================================================================
+  function setDsaDifficulty(level){
+    state.dsaDifficulty = level;
+    document.querySelectorAll('#dsaDifficultyPicker .diff-opt').forEach(b => b.classList.toggle('on', b.dataset.diff === level));
+    loadDsaQuestion();
+  }
+
+  function setProgLanguage(lang){
+    state.dsaProgLanguage = lang;
+    document.querySelectorAll('#progLangPicker .prog-opt').forEach(b => b.classList.toggle('on', b.dataset.lang === lang));
+  }
+
+  function toggleDebugMode(){
+    state.dsaDebugMode = !state.dsaDebugMode;
+    document.getElementById('debugSwitch').classList.toggle('on', state.dsaDebugMode);
+    document.getElementById('dsaSubmitBtn').textContent = state.dsaDebugMode ? t('run_debug') : t('submit_code');
+  }
+
+  async function loadDsaQuestion(){
+    clearDsaTimer();
+    document.getElementById('dsaQuestionText').textContent = t('loading_question');
+    document.getElementById('dsaExamplesList').innerHTML = '';
+    document.getElementById('dsaResultCard').style.display = 'none';
+    try {
+      const exclude = state.dsaSeenQuestionIds.join(',');
+      const data = await api('/dsa/question?difficulty=' + encodeURIComponent(state.dsaDifficulty) + '&language=' + encodeURIComponent(state.language) + (exclude ? '&exclude=' + encodeURIComponent(exclude) : ''));
+      state.dsaCurrentQuestionId = data.id;
+      state.dsaSeenQuestionIds.push(data.id);
+      if(state.dsaSeenQuestionIds.length > 20) state.dsaSeenQuestionIds.shift(); // don't grow forever
+      document.getElementById('dsaQLabel').textContent = data.title + ' · ' + capWord(data.difficulty);
+      document.getElementById('dsaQuestionText').textContent = data.prompt;
+      document.getElementById('dsaExamplesList').innerHTML = (data.examples || []).map(ex => '<li>'+escapeHtml(ex)+'</li>').join('');
+      document.getElementById('dsaCodeInput').value = '';
+      if(state.dsaPressureMode) startDsaTimer();
+    } catch(e){
+      document.getElementById('dsaQuestionText').innerHTML = 'Could not load a question: ' + escapeHtml(e.message) +
+        '<br><button class="pill-btn" style="margin-top:12px;" onclick="loadDsaQuestion()">' + t('retry') + '</button>';
+    }
+  }
+
+  async function submitDsaAnswer(timedOut){
+    const code = document.getElementById('dsaCodeInput').value;
+    if(!code.trim() || !state.dsaCurrentQuestionId){
+      if(timedOut){
+        // Pressure mode expired with nothing written — show that plainly
+        // instead of firing a request the backend will just 400 on.
+        clearDsaTimer();
+        const resultCard = document.getElementById('dsaResultCard');
+        resultCard.style.display = 'block';
+        document.getElementById('dsaScoreBlock').style.display = 'none';
+        document.getElementById('dsaHintBlock').style.display = 'none';
+        document.getElementById('dsaReferenceBlock').style.display = 'none';
+        document.getElementById('dsaVerdictLine').textContent = t('time_up_label');
+        document.getElementById('dsaFeedbackText').textContent = t('no_code_time_up');
+      }
+      return;
+    }
+    clearDsaTimer();
+    const resultCard = document.getElementById('dsaResultCard');
+    const scoreBlock = document.getElementById('dsaScoreBlock');
+    const hintBlock = document.getElementById('dsaHintBlock');
+    const refBlock = document.getElementById('dsaReferenceBlock');
+    resultCard.style.display = 'block';
+    scoreBlock.style.display = 'none';
+    hintBlock.style.display = 'none';
+    refBlock.style.display = 'none';
+    document.getElementById('dsaVerdictLine').textContent = state.dsaDebugMode ? t('debugging') : t('grading');
+    document.getElementById('dsaFeedbackText').textContent = '';
+    const submitBtn = document.getElementById('dsaSubmitBtn');
+    submitBtn.disabled = true;
+    try {
+      const data = await api('/dsa/submit', { method:'POST', body: {
+        question_id: state.dsaCurrentQuestionId,
+        prog_language: state.dsaProgLanguage,
+        code, debug_mode: state.dsaDebugMode, language: state.language,
+      }});
+      if(data.debug_mode){
+        document.getElementById('dsaVerdictLine').textContent = t('hint_label');
+        document.getElementById('dsaFeedbackText').textContent = data.feedback || '';
+        if(data.hint){
+          hintBlock.style.display = 'block';
+          document.getElementById('dsaHintText').textContent = data.hint;
+        }
+      } else {
+        scoreBlock.style.display = 'flex';
+        document.getElementById('dsaScoreNum').textContent = data.score;
+        document.getElementById('dsaVerdictLine').textContent = data.verdict || '';
+        document.getElementById('dsaFeedbackText').textContent = data.feedback || '';
+        if(data.reference_approach){
+          refBlock.style.display = 'block';
+          document.getElementById('dsaReferenceText').textContent = data.reference_approach;
+        }
+      }
+    } catch(e){
+      document.getElementById('dsaVerdictLine').textContent = '';
+      document.getElementById('dsaFeedbackText').textContent = 'Could not reach the backend: ' + e.message;
+    } finally {
+      submitBtn.disabled = false;
+    }
+  }
+
+  // ===================================================================
+  // Downloadable reports (verdict + progress) — built client-side as a
+  // standalone HTML file so no PDF library / backend dependency is needed.
+  // Opens fine in a browser and can be printed to PDF via Ctrl+P if wanted.
+  // ===================================================================
+  function downloadHtmlReport(filename, title, bodyHtml){
+    const doc = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>' + escapeHtml(title) + '</title>'
+      + '<style>body{font-family:Georgia,serif; max-width:760px; margin:40px auto; padding:0 20px; color:#1c1a16; line-height:1.5;}'
+      + 'h1{font-size:26px; margin-bottom:4px;} h2{font-size:16px; margin-top:34px; border-bottom:2px solid #1c1a16; padding-bottom:6px;}'
+      + '.meta{color:#6b6459; font-size:13px; margin-bottom:20px;} .card{border:1px solid #d8d0c0; border-radius:8px; padding:14px 18px; margin-bottom:14px;}'
+      + '.verdict{font-weight:700; text-transform:uppercase; font-size:13px; letter-spacing:0.04em;}'
+      + '.strong{color:#2c6459;} .lean{color:#a8791a;} .discuss{color:#a13a2e;}'
+      + 'ul{padding-left:20px;} .chip{display:inline-block; font-size:11px; border:1px solid #d8d0c0; border-radius:999px; padding:2px 8px; margin:2px 4px 2px 0;}'
+      + '.chip.hit{border-color:#2c6459; color:#2c6459;} @media print{ a[href]:after{content:none;} }</style>'
+      + '</head><body>' + bodyHtml + '</body></html>';
+    const blob = new Blob([doc], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function downloadVerdictReport(){
+    const data = state.lastResultsData;
+    if(!data) return;
+    const labelMap = {hr:t('persona_hr'), tech:t('persona_tech'), hm:t('persona_hm')};
+    const verdictLabelMap = {strong:t('strong_hire'), lean:t('lean_hire'), discuss:t('discuss_hire')};
+    let body = '<h1>' + escapeHtml(t('results_title')) + '</h1>'
+      + '<div class="meta">' + new Date().toLocaleString() + '</div>';
+    body += '<h2>' + escapeHtml(t('perf_by_evaluator')) + '</h2>';
+    data.verdicts.forEach(v => {
+      const cls = v.verdict === 'strong' ? 'strong' : (v.verdict === 'lean' ? 'lean' : 'discuss');
+      body += '<div class="card"><div>' + escapeHtml(labelMap[v.persona] || v.persona) + '</div>'
+        + '<div class="verdict ' + cls + '">' + escapeHtml(verdictLabelMap[v.verdict] || capWord(v.verdict)) + '</div>'
+        + '<p>' + escapeHtml(v.reasoning || '') + '</p>'
+        + (v.quote ? '<p><em>“' + escapeHtml(v.quote) + '”</em></p>' : '')
+        + '<div class="meta">' + (v.quote_verified ? escapeHtml(t('quote_verified')) : escapeHtml(t('quote_unverified'))) + '</div></div>';
+    });
+    if(data.coaching && data.coaching.length){
+      body += '<h2>' + escapeHtml(t('coaching_label')) + '</h2>';
+      data.coaching.forEach(c => {
+        const star = c.star_detected || {s:false,t:false,a:false,r:false};
+        body += '<div class="card"><div style="font-weight:600; margin-bottom:6px;">' + escapeHtml(c.question) + '</div>'
+          + '<p><strong>' + escapeHtml(t('you_said')) + '</strong> ' + escapeHtml(c.your_answer) + '</p>'
+          + '<p><strong>' + escapeHtml(t('stronger_version')) + '</strong> ' + escapeHtml(c.stronger_answer) + '</p>'
+          + '<p><em>' + escapeHtml(c.why_its_stronger) + '</em></p>'
+          + '<div class="meta">' + escapeHtml(t('score_label')) + ': ' + (c.score || 0) + ' / 100</div>'
+          + '<div>'
+          + '<span class="chip' + (star.s?' hit':'') + '">' + escapeHtml(t('s_detected')) + '</span>'
+          + '<span class="chip' + (star.t?' hit':'') + '">' + escapeHtml(t('t_detected')) + '</span>'
+          + '<span class="chip' + (star.a?' hit':'') + '">' + escapeHtml(t('a_detected')) + '</span>'
+          + '<span class="chip' + (star.r?' hit':'') + '">' + escapeHtml(t('r_detected')) + '</span>'
+          + '</div></div>';
+      });
+    }
+    body += '<h2>' + escapeHtml(t('transcript_label')) + '</h2><div class="card" style="white-space:pre-wrap; font-family:monospace; font-size:13px;">'
+      + escapeHtml(data.transcript || '') + '</div>';
+    downloadHtmlReport('hiring-room-verdict-session-' + data.session_id + '.html', t('results_title'), body);
+  }
+
+  function downloadProgressReport(){
+    const stats = state.lastStats;
+    const overview = state.lastOverview;
+    if(!stats) return;
+    let body = '<h1>' + escapeHtml(t('overview_title')) + '</h1>'
+      + '<div class="meta">' + new Date().toLocaleString() + '</div>'
+      + '<p>' + escapeHtml(t('stat_sessions')) + ': ' + stats.sessions_completed + ' &nbsp;·&nbsp; '
+      + escapeHtml(t('stat_resumes')) + ': ' + stats.resumes_analyzed + '</p>';
+    if(overview && overview.sessions_counted){
+      body += '<h2>' + escapeHtml(t('overview_title')) + '</h2>';
+      if(overview.strengths && overview.strengths.length){
+        body += '<p><strong>Strengths</strong></p><ul>' + overview.strengths.map(s => '<li>'+escapeHtml(s)+'</li>').join('') + '</ul>';
+      }
+      if(overview.improve && overview.improve.length){
+        body += '<p><strong>Where to improve</strong></p><ul>' + overview.improve.map(s => '<li>'+escapeHtml(s)+'</li>').join('') + '</ul>';
+      }
+    }
+    body += '<h2>' + escapeHtml(t('session_history_title')) + '</h2>';
+    stats.history.forEach(s => {
+      const cls = s.overall_verdict === 'strong' ? 'strong' : (s.overall_verdict === 'lean' ? 'lean' : 'discuss');
+      body += '<div class="card"><div>' + escapeHtml(s.role_title) + '</div>'
+        + '<div class="meta">' + new Date(s.created_at).toLocaleDateString() + ' · ' + escapeHtml(s.status) + '</div>'
+        + '<div class="verdict ' + cls + '">' + escapeHtml(capWord(s.overall_verdict)) + '</div></div>';
+    });
+    downloadHtmlReport('hiring-room-progress-report.html', t('overview_title'), body);
   }
 
   /* ---- scroll reveal (re-scans on every view change for freshly rendered nodes) ---- */
@@ -1597,6 +2463,7 @@
 
   /* init */
   setAuthTab('signin');
+  applyI18n();
   initReveal();
   requestAnimationFrame(drawLandingChart);
 
@@ -1660,10 +2527,11 @@
 
     if(selfViewOn){
       selfViewOn = false;
+      window.selfViewOnForLabel = false;
       if(rafId) cancelAnimationFrame(rafId);
       if(selfViewStream) selfViewStream.getTracks().forEach(t => t.stop());
       box.classList.remove('show');
-      btn.textContent = 'Enable camera self-check (beta)';
+      btn.textContent = window.t ? window.t('camera_toggle_on') : 'Enable camera self-check (beta)';
       readout.textContent = '';
       return;
     }
@@ -1676,8 +2544,9 @@
       video.srcObject = selfViewStream;
       await video.play();
       box.classList.add('show');
-      btn.textContent = 'Turn off camera self-check';
+      btn.textContent = window.t ? window.t('camera_toggle_off') : 'Turn off camera self-check';
       selfViewOn = true;
+      window.selfViewOnForLabel = true;
       loop();
     } catch(e){
       readout.textContent = 'Could not start camera check: ' + e.message;

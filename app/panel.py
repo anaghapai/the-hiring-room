@@ -21,6 +21,109 @@ router = APIRouter(prefix="/interview", tags=["interview"])
 PERSONAS = ["hr", "tech", "hm"]
 PERSONA_LABEL = {"hr": "HR", "tech": "Tech Lead", "hm": "Hiring Manager"}
 
+# Shared by panel.py and dsa.py so every Groq-generated response (questions,
+# verdicts, coaching, DSA feedback) can be asked for in the candidate's
+# chosen UI language, instead of only ever coming back in English.
+LANGUAGE_NAMES = {"en": "English", "hi": "Hindi", "kn": "Kannada"}
+
+
+def language_instruction(language: str) -> str:
+    name = LANGUAGE_NAMES.get((language or "en").lower(), "English")
+    if name == "English":
+        return ""
+    return f"\n\nIMPORTANT: Respond ONLY in {name}. Every word of your reply must be in {name}, not English."
+
+
+DIFFICULTY_INSTRUCTION = {
+    "easy": "Keep questions approachable — fundamentals, no multi-step tradeoffs. Ease the candidate in.",
+    "moderate": "Keep questions at a normal, realistic interview difficulty — some depth expected, not entry-level.",
+    "difficult": "Push harder than a normal interview — expect the candidate to reason through edge cases, "
+                 "tradeoffs, and follow-up pressure. Don't go easy.",
+}
+
+
+def _extract_json(raw: str):
+    """Best-effort JSON extraction from a Groq completion.
+
+    Small models (this app uses gpt-oss-20b for speed) sometimes wrap JSON in
+    prose, markdown fences, or partial commentary even when told not to —
+    especially once a prompt asks for several things at once (language,
+    STAR flags, score, verbatim quotes). A plain json.loads() on the raw
+    string was failing outright in exactly that situation, which showed up
+    as "Could not parse a verdict" for every persona at once. This tries,
+    in order: the raw string as-is, the string with code fences stripped,
+    then the first {...}/[...] block found anywhere in the text.
+    """
+    if not raw:
+        return None
+    candidates = [raw.strip()]
+    fenced = raw.strip().strip("`")
+    if fenced.lower().startswith("json"):
+        fenced = fenced[4:]
+    candidates.append(fenced.strip())
+    # Grab the first balanced-looking [...] or {...} block as a last resort.
+    for open_ch, close_ch in (("[", "]"), ("{", "}")):
+        start = raw.find(open_ch)
+        end = raw.rfind(close_ch)
+        if start != -1 and end != -1 and end > start:
+            candidates.append(raw[start:end + 1])
+    for candidate in candidates:
+        try:
+            return json.loads(candidate)
+        except Exception:
+            continue
+    return None
+
+
+def loose_extract_field(chunk: str, key: str, next_keys=()) -> str:
+    """Pull a string field's value out of JSON-ish text WITHOUT requiring the
+    surrounding text to be valid JSON.
+
+    This is the fallback of last resort for when a model asked to copy
+    something "verbatim" embeds a raw quote/newline/backslash that breaks
+    strict parsing, or the response got truncated mid-string by a token
+    limit. Rather than needing the whole blob to parse, this just finds
+    `"key": "` and reads forward to wherever the next expected key starts
+    (or the end of the chunk) — good enough to recover a field even out of
+    genuinely malformed JSON.
+    """
+    m = re.search(r'"' + re.escape(key) + r'"\s*:\s*"', chunk)
+    if not m:
+        return ""
+    start = m.end()
+    end = len(chunk)
+    for nk in next_keys:
+        m2 = re.search(r'"' + re.escape(nk) + r'"\s*:', chunk[start:])
+        if m2:
+            end = min(end, start + m2.start())
+    value = chunk[start:end]
+    value = re.sub(r'["\',}\s]+$', '', value)
+    # Unescape the common JSON escapes a truncated/malformed blob still uses.
+    value = value.replace('\\n', '\n').replace('\\"', '"').replace('\\t', '\t')
+    return value.strip()
+
+
+def _loose_extract_verdicts(raw: str, personas: list) -> Dict[str, dict]:
+    """Tertiary fallback for the verdict array when even _extract_json()
+    fails on both the first try and the retry. Anchors on each "persona"
+    occurrence and reads the fields around it with loose_extract_field()."""
+    result: Dict[str, dict] = {}
+    if not raw:
+        return result
+    matches = list(re.finditer(r'"persona"\s*:\s*"(\w+)"', raw))
+    for i, m in enumerate(matches):
+        persona = m.group(1)
+        if persona not in personas:
+            continue
+        start = m.start()
+        end = matches[i + 1].start() if i + 1 < len(matches) else len(raw)
+        chunk = raw[start:end]
+        verdict = loose_extract_field(chunk, "verdict", ["reasoning", "quote"]) or "discuss"
+        reasoning = loose_extract_field(chunk, "reasoning", ["quote"])
+        quote = loose_extract_field(chunk, "quote", ["persona"])
+        result[persona] = {"persona": persona, "verdict": verdict or "discuss", "reasoning": reasoning, "quote": quote}
+    return result
+
 # Each persona gets its own rubric. This is the "few-shot instead of
 # fine-tuning" approach: no training needed, the rubric + examples steer
 # the model at request time.
@@ -299,6 +402,8 @@ def start_interview(
         user_id=user.id,
         role_title=body.role_title,
         resume_analysis_id=body.resume_analysis_id,
+        difficulty=body.difficulty or "moderate",
+        language=body.language or "en",
     )
     session.add(interview)
     session.commit()
@@ -332,12 +437,14 @@ in this role would ask (don't copy them verbatim — use them as a calibration f
 and specificity):
 {examples}
 
+Difficulty for this session: {interview.difficulty}. {DIFFICULTY_INSTRUCTION.get(interview.difficulty, DIFFICULTY_INSTRUCTION['moderate'])}
+
 Candidate is interviewing for: {interview.role_title}
 
 Interview so far:
 {history_text or '(this is the first question)'}
 
-Ask your next question now. Reply with ONLY the question text, nothing else."""
+Ask your next question now. Reply with ONLY the question text, nothing else.{language_instruction(interview.language)}"""
 
     question_text = _generate(prompt)
     if not question_text or not question_text.strip():
@@ -410,7 +517,7 @@ def _normalize(text: str) -> str:
     return re.sub(r"\s+", " ", text.strip().lower())
 
 
-def _build_coaching_prompt(turns: List[InterviewTurn]) -> Optional[str]:
+def _build_coaching_prompt(turns: List[InterviewTurn], language: str = "en") -> Optional[str]:
     answered = [t for t in turns if t.answer is not None]
     if not answered:
         return None
@@ -421,28 +528,110 @@ def _build_coaching_prompt(turns: List[InterviewTurn]) -> Optional[str]:
     return f"""For each Q&A below, show how the candidate could strengthen their own answer.
 Start with what they said (acknowledge it), then show the improved version building on that core idea.
 Use STAR structure (Situation/Task/Action/Result) for behavioral questions. For technical questions,
-add more depth/specificity. Keep the improved answer under 120 words. Be coaching, not harsh.
+add more depth/specificity. Keep the improved answer under 70 words — brevity matters more than
+completeness here, since a long answer for an early question can eat the token budget and leave a
+later question's answer cut off entirely. Be coaching, not harsh.
+
+Also evaluate the CANDIDATE'S OWN answer as literally written above (NOT your rewrite in
+"stronger_answer" — read only the "Candidate's answer:" text for this part). Be an honest, calibrated
+grader — this cuts BOTH ways, and getting either direction wrong is equally a failure:
+- "score": an integer 0-100 for how strong/complete their own answer already was, compared to the
+  ideal ("star") answer you wrote as stronger_answer.
+  - An answer that is incoherent, trails off, asks for more time, or doesn't actually address the
+    question should score under 20 — do not be generous just because the topic is relevant.
+  - An answer that is genuinely clear, specific, well-structured, and actually answers what was asked
+    should score high (80-100) — do not manufacture nitpicks or dock points just to seem rigorous.
+    If it already covers Situation/Task/Action/Result concretely (or, for a technical question, is
+    correct and reasonably complete), that IS a strong answer and the score must reflect that.
+  - Judge the answer that's actually there, not how it compares to a hypothetical perfect candidate —
+    "good but could add one more metric" is still a high score, not a middling one.
+- "star_detected": for behavioral questions, re-read the candidate's own answer sentence by sentence
+  and individually flag whether IT (not your rewrite) already contained a Situation, a Task, an
+  Action, and a Result, as booleans {{"s":bool,"t":bool,"a":bool,"r":bool}}. Be strict and literal:
+  a flag is true only if that specific element is actually present in their words — a vague mention
+  of a topic is not a Situation, wanting to explain something is not a Task, and "I'll tell you in a
+  second" is not any of the four. If the candidate's answer never mentions a piece (e.g. never states
+  a measurable Result), that flag must be false — do not mark something true just because your
+  improved version added it, and never default all four to true. Equally, if the candidate's answer
+  DOES clearly state all four, all four must be true — don't withhold a flag that's genuinely earned.
+  An answer that is rambling,
+  unfinished, or asks to come back to the question later should have MOST or ALL of these false.
+  For a purely technical question, set all four to false and base "score" on correctness/completeness instead.
 
 Reply ONLY as a JSON array in this exact format, same order as questions:
-{{"question": "...", "your_answer": "...", "stronger_answer": "...", "why_its_stronger": "..."}}
+{{"question": "...", "your_answer": "...", "stronger_answer": "...", "why_its_stronger": "...",
+"score": 0, "star_detected": {{"s": false, "t": false, "a": false, "r": false}}}}
 
-{qa_block}"""
+{qa_block}{language_instruction(language)}
+Exception: "your_answer" must stay copied verbatim from what the candidate actually said, not translated."""
+
+
+def _loose_extract_coaching(raw: str) -> list:
+    """Same idea as _loose_extract_verdicts, for coaching items. Anchors on
+    each "question" occurrence since that's the first key in every object."""
+    items = []
+    if not raw:
+        return items
+    matches = list(re.finditer(r'"question"\s*:\s*"', raw))
+    for i, m in enumerate(matches):
+        start = m.start()
+        end = matches[i + 1].start() if i + 1 < len(matches) else len(raw)
+        chunk = raw[start:end]
+        question = loose_extract_field(chunk, "question", ["your_answer"])
+        your_answer = loose_extract_field(chunk, "your_answer", ["stronger_answer"])
+        stronger_answer = loose_extract_field(chunk, "stronger_answer", ["why_its_stronger"])
+        why = loose_extract_field(chunk, "why_its_stronger", ["score", "star_detected"])
+        score_m = re.search(r'"score"\s*:\s*(\d+)', chunk)
+        score = int(score_m.group(1)) if score_m else 0
+        star_chunk_m = re.search(r'"star_detected"\s*:\s*\{([^}]*)\}', chunk)
+        star_chunk = star_chunk_m.group(1) if star_chunk_m else ""
+        def flag(key):
+            fm = re.search(r'"' + key + r'"\s*:\s*(true|false)', star_chunk)
+            return fm.group(1) == "true" if fm else False
+        items.append({
+            "question": question, "your_answer": your_answer,
+            "stronger_answer": stronger_answer, "why_its_stronger": why,
+            "score": score,
+            "star_detected": {"s": flag("s"), "t": flag("t"), "a": flag("a"), "r": flag("r")},
+        })
+    return items
 
 
 def _parse_coaching(raw: str) -> List["CoachingItem"]:
-    from app.models import CoachingItem
-    try:
-        cleaned = raw.strip().strip("`")
-        if cleaned.startswith("json"):
-            cleaned = cleaned[4:]
-        parsed = json.loads(cleaned)
-        if not isinstance(parsed, list):
-            raise ValueError("expected a JSON array")
-        return [CoachingItem(**item) for item in parsed]
-    except Exception:
-        # Coaching is a bonus, not core to the verdict — fail quietly rather
-        # than break the whole deliberation response.
+    from app.models import CoachingItem, StarDetected
+    parsed = _extract_json(raw)
+    if not isinstance(parsed, list):
+        parsed = _loose_extract_coaching(raw)
+    if not isinstance(parsed, list):
         return []
+    items = []
+    for item in parsed:
+        if not isinstance(item, dict):
+            continue
+        star_raw = item.get("star_detected") or {}
+        if not isinstance(star_raw, dict):
+            star_raw = {}
+        try:
+            items.append(CoachingItem(
+                question=item.get("question", ""),
+                your_answer=item.get("your_answer", ""),
+                stronger_answer=item.get("stronger_answer", ""),
+                why_its_stronger=item.get("why_its_stronger", ""),
+                score=int(item.get("score", 0) or 0),
+                star_detected=StarDetected(
+                    s=bool(star_raw.get("s")), t=bool(star_raw.get("t")),
+                    a=bool(star_raw.get("a")), r=bool(star_raw.get("r")),
+                ),
+            ))
+        except Exception:
+            # One malformed item shouldn't drop every other coaching item.
+            continue
+    # Drop items that came out with an empty stronger_answer — that's the
+    # signature of the response getting truncated mid-array (usually the
+    # last item). Showing a blank "Stronger version:" is more confusing than
+    # just omitting that one Q&A from coaching entirely.
+    items = [i for i in items if i.stronger_answer.strip()]
+    return items
 
 
 @router.post("/{session_id}/flag")
@@ -506,9 +695,11 @@ Transcript:
 {interview.transcript}
 
 Only these evaluators actually got to ask/hear an answer this session: {', '.join(evaluated_personas) or 'none'}.
-Give a verdict ONLY for those evaluators, as a JSON array with exactly that many objects."""
+Give a verdict ONLY for those evaluators, as a JSON array with exactly that many objects.{language_instruction(interview.language)}
+Exception: the "quote" field must stay copied VERBATIM from the transcript above, in whatever language
+the transcript is actually written in — do not translate the quote itself, only "reasoning"."""
 
-    coaching_prompt = _build_coaching_prompt(all_turns) if evaluated_personas else None
+    coaching_prompt = _build_coaching_prompt(all_turns, interview.language) if evaluated_personas else None
 
     # These two Groq calls are fully independent (coaching only needs the
     # raw Q&A, not the verdicts) — running them one after another used to
@@ -521,25 +712,30 @@ Give a verdict ONLY for those evaluators, as a JSON array with exactly that many
     coaching_raw = None
     if evaluated_personas:
         with ThreadPoolExecutor(max_workers=2) as pool:
-            verdict_future = pool.submit(_generate, verdict_prompt, 900)
-            coaching_future = pool.submit(_generate, coaching_prompt, 1600) if coaching_prompt else None
+            verdict_future = pool.submit(_generate, verdict_prompt, 1200)
+            coaching_future = pool.submit(_generate, coaching_prompt, 3000) if coaching_prompt else None
 
             raw = verdict_future.result()
             coaching_raw = coaching_future.result() if coaching_future else None
 
-        try:
-            cleaned = raw.strip().strip("`")
-            if cleaned.startswith("json"):
-                cleaned = cleaned[4:]
-            parsed = json.loads(cleaned)
-            if not isinstance(parsed, list):
-                raise ValueError("expected a JSON array")
-            by_persona = {item.get("persona"): item for item in parsed}
-        except Exception:
-            # Fall back to "discuss" for the evaluated personas rather than fail
-            # the whole request — a malformed model response shouldn't crash a
-            # completed interview.
-            by_persona = {}
+        parsed = _extract_json(raw)
+        if isinstance(parsed, list):
+            by_persona = {item.get("persona"): item for item in parsed if isinstance(item, dict)}
+        else:
+            # Try the cheap regex-based recovery BEFORE paying for another full
+            # model call — this is the common case now (truncation/unescaped
+            # quotes, not the model ignoring the format), and skipping the
+            # retry here is most of the latency win in this round.
+            by_persona = _loose_extract_verdicts(raw, evaluated_personas)
+            if not by_persona:
+                # Genuinely nothing usable in the first response — now it's
+                # worth paying for one retry with a blunter reminder.
+                raw = _generate(verdict_prompt + "\n\nReminder: reply with ONLY the JSON array, no commentary, no markdown.", 1200)
+                parsed = _extract_json(raw)
+                if isinstance(parsed, list):
+                    by_persona = {item.get("persona"): item for item in parsed if isinstance(item, dict)}
+                else:
+                    by_persona = _loose_extract_verdicts(raw, evaluated_personas)
 
     results: List[VerdictItem] = []
     for persona in PERSONAS:
@@ -576,6 +772,12 @@ Give a verdict ONLY for those evaluators, as a JSON array with exactly that many
     session.commit()
 
     coaching = _parse_coaching(coaching_raw) if coaching_raw else []
+    if coaching_raw and not coaching and coaching_prompt:
+        # Same one-retry treatment as the verdict parse above — a blank
+        # coaching list from a malformed response used to just silently
+        # hide the whole "Stronger Answers" section.
+        retry_raw = _generate(coaching_prompt + "\n\nReminder: reply with ONLY the JSON array, no commentary, no markdown.", 3000)
+        coaching = _parse_coaching(retry_raw)
 
     flag_counts = _flag_counts(session, interview.id)
     return DeliberationResponse(

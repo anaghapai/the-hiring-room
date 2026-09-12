@@ -289,13 +289,33 @@ _TECH_CATEGORY_KEYWORDS = {
     "qa": ["qa", "quality assurance", "test engineer", "sdet"],
 }
 
+# Structured domain -> question-bank category. This is the primary signal now
+# that the frontend always exposes a Domain picker (previously it was hidden
+# unless a company was chosen, so this path only mattered in the company
+# branch; the free-text role_title keyword match below was the sole signal
+# for the no-company case, which meant picking a domain there did nothing).
+_DOMAIN_CATEGORY_MAP = {
+    "backend": "backend",
+    "frontend": "frontend",
+    "data_science": "data",
+    "data_analyst": "data",
+    "ml_engineer": "data",
+}
 
-def _tech_question_pool(role_title: str) -> list:
+
+def _tech_question_pool(role_title: str, domain: str = None) -> list:
+    # 1. Explicit domain selection wins — it's a deliberate structured choice,
+    #    more reliable than guessing from freeform role-title text.
+    if domain and domain in _DOMAIN_CATEGORY_MAP:
+        return QUESTION_BANK["tech"][_DOMAIN_CATEGORY_MAP[domain]]
+    # 2. Fall back to keyword matching against role_title (covers categories
+    #    with no dedicated domain option yet, e.g. mobile/devops/qa, and any
+    #    caller that still only supplies role_title).
     role_lower = (role_title or "").lower()
     for category, keywords in _TECH_CATEGORY_KEYWORDS.items():
         if any(kw in role_lower for kw in keywords):
             return QUESTION_BANK["tech"][category]
-    # Fall back to a full-stack blend if we can't confidently categorize the role.
+    # 3. Fall back to a full-stack blend if we can't confidently categorize the role.
     return (
         QUESTION_BANK["tech"]["generic"]
         + QUESTION_BANK["tech"]["backend"][:2]
@@ -404,6 +424,8 @@ def start_interview(
         resume_analysis_id=body.resume_analysis_id,
         difficulty=body.difficulty or "moderate",
         language=body.language or "en",
+        company=body.company or "general",
+        domain=body.domain or "general",
     )
     session.add(interview)
     session.commit()
@@ -428,14 +450,39 @@ def _ask_next(session: Session, interview: InterviewSession, persona: str) -> Ne
         return block
 
     history_text = "\n".join(_turn_block(t) for t in history_turns)
-    question_pool = _tech_question_pool(interview.role_title) if persona == "tech" else QUESTION_BANK[persona]
-    examples = "\n".join(f"- {q}" for q in random.sample(question_pool, k=min(3, len(question_pool))))
+    question_pool = _tech_question_pool(interview.role_title, interview.domain) if persona == "tech" else QUESTION_BANK[persona]
+
+    company_note = ""
+    if interview.company and interview.company != "general":
+        from app.company_bank import get_behavioral_pool, get_technical_pool, COMPANIES, DOMAINS
+        company_label = COMPANIES.get(interview.company, interview.company)
+        if persona == "tech":
+            bank_pool = get_technical_pool(interview.company, interview.domain)
+        else:
+            bank_pool = get_behavioral_pool(interview.company)
+        if bank_pool:
+            # Real, company-flavored examples used as calibration for EVERY
+            # turn (not just the first question) — a large pool so the same
+            # handful don't repeat across turns or across sessions. The
+            # candidate's actual answers still drive adaptation; this only
+            # steers style/topic to stay in the chosen company+domain lane.
+            question_pool = bank_pool
+            domain_label = DOMAINS.get(interview.domain, "the candidate's field") if persona == "tech" else None
+            company_note = (
+                f"\n\nThis interview is styled after {company_label}'s real, publicly documented interview "
+                f"approach{f' for {domain_label} roles' if domain_label else ''}. Every question you ask — "
+                f"not just this one — should stay grounded in that company's genuine interview style and "
+                f"topic focus. Do not claim a question is a verified real transcript; it should simply be "
+                f"authentically in that style."
+            )
+
+    examples = "\n".join(f"- {q}" for q in random.sample(question_pool, k=min(5, len(question_pool))))
     prompt = f"""{PERSONA_RUBRIC[persona]}
 
 For reference, here are examples of the style/quality of question a real interviewer
 in this role would ask (don't copy them verbatim — use them as a calibration for tone
 and specificity):
-{examples}
+{examples}{company_note}
 
 Difficulty for this session: {interview.difficulty}. {DIFFICULTY_INSTRUCTION.get(interview.difficulty, DIFFICULTY_INSTRUCTION['moderate'])}
 
@@ -517,6 +564,29 @@ def _normalize(text: str) -> str:
     return re.sub(r"\s+", " ", text.strip().lower())
 
 
+def _compute_communication_score(answer: str, wpm: Optional[float], filler_count: Optional[int]) -> Optional[int]:
+    """Communication score computed from REAL captured voice signal (pace,
+    filler-word count) — deliberately NOT an LLM guess from the text alone,
+    since that would just be duplicating "score" under a different name.
+    Returns None when no voice signal was captured for this turn (e.g. the
+    candidate typed the answer instead of speaking it) rather than faking a
+    number with nothing real behind it.
+    """
+    if wpm is None and filler_count is None:
+        return None
+    word_count = max(len((answer or "").split()), 1)
+    score = 100.0
+    if filler_count is not None and word_count > 0:
+        filler_ratio = filler_count / word_count
+        score -= min(50.0, filler_ratio * 300.0)
+    if wpm is not None:
+        if wpm < 100:
+            score -= min(25.0, (100 - wpm) * 0.5)
+        elif wpm > 180:
+            score -= min(25.0, (wpm - 180) * 0.5)
+    return max(0, round(score))
+
+
 def _build_coaching_prompt(turns: List[InterviewTurn], language: str = "en") -> Optional[str]:
     answered = [t for t in turns if t.answer is not None]
     if not answered:
@@ -528,9 +598,9 @@ def _build_coaching_prompt(turns: List[InterviewTurn], language: str = "en") -> 
     return f"""For each Q&A below, show how the candidate could strengthen their own answer.
 Start with what they said (acknowledge it), then show the improved version building on that core idea.
 Use STAR structure (Situation/Task/Action/Result) for behavioral questions. For technical questions,
-add more depth/specificity. Keep the improved answer under 70 words — brevity matters more than
-completeness here, since a long answer for an early question can eat the token budget and leave a
-later question's answer cut off entirely. Be coaching, not harsh.
+add more depth/specificity. Aim for roughly 100-160 words — long enough to actually demonstrate a
+full Situation/Task/Action/Result arc (or real technical depth) instead of a thin one-liner, but stop
+once the point is made rather than padding. Be coaching, not harsh.
 
 Also evaluate the CANDIDATE'S OWN answer as literally written above (NOT your rewrite in
 "stronger_answer" — read only the "Candidate's answer:" text for this part). Be an honest, calibrated
@@ -545,6 +615,10 @@ grader — this cuts BOTH ways, and getting either direction wrong is equally a 
     correct and reasonably complete), that IS a strong answer and the score must reflect that.
   - Judge the answer that's actually there, not how it compares to a hypothetical perfect candidate —
     "good but could add one more metric" is still a high score, not a middling one.
+- "domain_knowledge_score": an integer 0-100 judging specifically the technical/domain accuracy and
+  depth shown — separate from how well-structured or articulate the answer was. A technically correct
+  but plainly-worded answer should still score high here; a fluent answer with wrong or vague technical
+  content should score low here even if "score" above is more forgiving of its structure.
 - "star_detected": for behavioral questions, re-read the candidate's own answer sentence by sentence
   and individually flag whether IT (not your rewrite) already contained a Situation, a Task, an
   Action, and a Result, as booleans {{"s":bool,"t":bool,"a":bool,"r":bool}}. Be strict and literal:
@@ -554,16 +628,38 @@ grader — this cuts BOTH ways, and getting either direction wrong is equally a 
   a measurable Result), that flag must be false — do not mark something true just because your
   improved version added it, and never default all four to true. Equally, if the candidate's answer
   DOES clearly state all four, all four must be true — don't withhold a flag that's genuinely earned.
-  An answer that is rambling,
-  unfinished, or asks to come back to the question later should have MOST or ALL of these false.
-  For a purely technical question, set all four to false and base "score" on correctness/completeness instead.
+  An answer that is rambling, unfinished, or asks to come back to the question later should have MOST
+  or ALL of these false. For a purely technical question, set all four to false and base "score" on
+  correctness/completeness instead.
+- "what_went_well": 1-3 short bullet strings (under 15 words each) on specifically what was good about
+  THIS answer. If the answer was genuinely weak with nothing to credit, this can be a single honest
+  bullet like "Attempted to engage with the question" rather than an invented compliment — but don't
+  leave it empty just because the answer was weak; find the one true thing if there is one.
+- "what_to_improve": 1-3 short bullet strings (under 15 words each) on specifically what to fix, tied
+  to what's actually missing or wrong in THIS answer — not generic advice that could apply to any answer.
+- "missing_terminologies": 0-4 short key terms/concepts (a few words each, e.g. "Time complexity",
+  "A/B testing", "Load balancing") that a strong answer to this specific question would have used but
+  this candidate's answer did not mention. Leave this empty if the answer already used the relevant
+  terms, or if the question doesn't really have expected terminology (e.g. a pure opinion question).
 
 Reply ONLY as a JSON array in this exact format, same order as questions:
 {{"question": "...", "your_answer": "...", "stronger_answer": "...", "why_its_stronger": "...",
-"score": 0, "star_detected": {{"s": false, "t": false, "a": false, "r": false}}}}
+"score": 0, "domain_knowledge_score": 0, "star_detected": {{"s": false, "t": false, "a": false, "r": false}},
+"what_went_well": ["..."], "what_to_improve": ["..."], "missing_terminologies": ["..."]}}
 
 {qa_block}{language_instruction(language)}
 Exception: "your_answer" must stay copied verbatim from what the candidate actually said, not translated."""
+
+
+def _loose_extract_string_array(chunk: str, key: str) -> list:
+    """Pull a JSON array of short strings out of possibly-malformed text —
+    used for what_went_well/what_to_improve/missing_terminologies when the
+    surrounding JSON doesn't parse cleanly."""
+    m = re.search(r'"' + re.escape(key) + r'"\s*:\s*\[(.*?)\]', chunk, re.S)
+    if not m:
+        return []
+    items = re.findall(r'"((?:[^"\\]|\\.)*)"', m.group(1))
+    return [i.replace('\\"', '"').strip() for i in items if i.strip()]
 
 
 def _loose_extract_coaching(raw: str) -> list:
@@ -580,9 +676,11 @@ def _loose_extract_coaching(raw: str) -> list:
         question = loose_extract_field(chunk, "question", ["your_answer"])
         your_answer = loose_extract_field(chunk, "your_answer", ["stronger_answer"])
         stronger_answer = loose_extract_field(chunk, "stronger_answer", ["why_its_stronger"])
-        why = loose_extract_field(chunk, "why_its_stronger", ["score", "star_detected"])
+        why = loose_extract_field(chunk, "why_its_stronger", ["score", "domain_knowledge_score", "star_detected"])
         score_m = re.search(r'"score"\s*:\s*(\d+)', chunk)
         score = int(score_m.group(1)) if score_m else 0
+        dk_m = re.search(r'"domain_knowledge_score"\s*:\s*(\d+)', chunk)
+        domain_knowledge_score = int(dk_m.group(1)) if dk_m else 0
         star_chunk_m = re.search(r'"star_detected"\s*:\s*\{([^}]*)\}', chunk)
         star_chunk = star_chunk_m.group(1) if star_chunk_m else ""
         def flag(key):
@@ -591,8 +689,11 @@ def _loose_extract_coaching(raw: str) -> list:
         items.append({
             "question": question, "your_answer": your_answer,
             "stronger_answer": stronger_answer, "why_its_stronger": why,
-            "score": score,
+            "score": score, "domain_knowledge_score": domain_knowledge_score,
             "star_detected": {"s": flag("s"), "t": flag("t"), "a": flag("a"), "r": flag("r")},
+            "what_went_well": _loose_extract_string_array(chunk, "what_went_well"),
+            "what_to_improve": _loose_extract_string_array(chunk, "what_to_improve"),
+            "missing_terminologies": _loose_extract_string_array(chunk, "missing_terminologies"),
         })
     return items
 
@@ -611,6 +712,10 @@ def _parse_coaching(raw: str) -> List["CoachingItem"]:
         star_raw = item.get("star_detected") or {}
         if not isinstance(star_raw, dict):
             star_raw = {}
+        def _str_list(v):
+            if not isinstance(v, list):
+                return []
+            return [str(x).strip() for x in v if str(x).strip()][:4]
         try:
             items.append(CoachingItem(
                 question=item.get("question", ""),
@@ -618,10 +723,14 @@ def _parse_coaching(raw: str) -> List["CoachingItem"]:
                 stronger_answer=item.get("stronger_answer", ""),
                 why_its_stronger=item.get("why_its_stronger", ""),
                 score=int(item.get("score", 0) or 0),
+                domain_knowledge_score=int(item.get("domain_knowledge_score", 0) or 0),
                 star_detected=StarDetected(
                     s=bool(star_raw.get("s")), t=bool(star_raw.get("t")),
                     a=bool(star_raw.get("a")), r=bool(star_raw.get("r")),
                 ),
+                what_went_well=_str_list(item.get("what_went_well")),
+                what_to_improve=_str_list(item.get("what_to_improve")),
+                missing_terminologies=_str_list(item.get("missing_terminologies")),
             ))
         except Exception:
             # One malformed item shouldn't drop every other coaching item.
@@ -713,7 +822,7 @@ the transcript is actually written in — do not translate the quote itself, onl
     if evaluated_personas:
         with ThreadPoolExecutor(max_workers=2) as pool:
             verdict_future = pool.submit(_generate, verdict_prompt, 1200)
-            coaching_future = pool.submit(_generate, coaching_prompt, 3000) if coaching_prompt else None
+            coaching_future = pool.submit(_generate, coaching_prompt, 5500) if coaching_prompt else None
 
             raw = verdict_future.result()
             coaching_raw = coaching_future.result() if coaching_future else None
@@ -776,8 +885,19 @@ the transcript is actually written in — do not translate the quote itself, onl
         # Same one-retry treatment as the verdict parse above — a blank
         # coaching list from a malformed response used to just silently
         # hide the whole "Stronger Answers" section.
-        retry_raw = _generate(coaching_prompt + "\n\nReminder: reply with ONLY the JSON array, no commentary, no markdown.", 3000)
+        retry_raw = _generate(coaching_prompt + "\n\nReminder: reply with ONLY the JSON array, no commentary, no markdown.", 5500)
         coaching = _parse_coaching(retry_raw)
+
+    # Attach a REAL, server-computed communication score per item from the
+    # matching turn's actual captured voice signal — same order as the
+    # "answered" list _build_coaching_prompt used, so index i lines up.
+    answered_turns = [t for t in all_turns if t.answer is not None]
+    for i, item in enumerate(coaching):
+        if i < len(answered_turns):
+            turn = answered_turns[i]
+            item.communication_score = _compute_communication_score(
+                item.your_answer or turn.answer, turn.voice_wpm, turn.voice_filler_count
+            )
 
     flag_counts = _flag_counts(session, interview.id)
     return DeliberationResponse(

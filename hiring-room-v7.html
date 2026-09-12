@@ -323,6 +323,29 @@
   .star-chip-row{ display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; }
   .star-chip{ font-family:'IBM Plex Mono', monospace; font-size:10.5px; padding:4px 9px; border-radius:999px; border:1.5px solid var(--line); color:var(--ink-soft); }
   .star-chip.hit{ border-color:var(--verify); color:var(--verify-deep); background:rgba(44,100,89,0.08); }
+  .qa-quote-block{ background:var(--ink); color:var(--paper-card); border-radius:8px; padding:14px 16px; margin-bottom:12px; }
+  .qa-quote-block .qa-q{ font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:0.04em; opacity:0.7; text-transform:uppercase; margin-bottom:6px; }
+  .qa-quote-block .qa-a{ font-size:13.5px; line-height:1.5; }
+  .term-chip{ font-family:'IBM Plex Mono', monospace; font-size:10.5px; padding:4px 9px; border-radius:999px; border:1.5px solid #8b7ec8; color:#5b4d94; background:rgba(139,126,200,0.08); }
+  .coaching-tab-btn{ font-family:'IBM Plex Mono', monospace; font-size:12px; padding:8px 10px; border-radius:8px; border:1.5px solid var(--line); background:var(--paper-card); color:var(--ink-soft); text-align:left; white-space:nowrap; }
+  .coaching-tab-btn.active{ background:var(--ink); color:var(--paper); border-color:var(--ink); }
+  .wtw-wti-grid{ display:grid; grid-template-columns:1fr 1fr; gap:14px; margin:14px 0; }
+  @media (max-width:640px){ .wtw-wti-grid{ grid-template-columns:1fr; } }
+  .wtw-box{ background:rgba(44,100,89,0.06); border:1px solid rgba(44,100,89,0.25); border-radius:8px; padding:12px 14px; }
+  .wti-box{ background:rgba(196,148,44,0.08); border:1px solid rgba(196,148,44,0.3); border-radius:8px; padding:12px 14px; }
+  .wtw-box .box-head{ color:var(--verify-deep); font-weight:600; font-size:12.5px; margin-bottom:8px; display:flex; align-items:center; gap:6px; }
+  .wti-box .box-head{ color:#8a6314; font-weight:600; font-size:12.5px; margin-bottom:8px; display:flex; align-items:center; gap:6px; }
+  .wtw-box ul, .wti-box ul{ margin:0; padding-left:18px; }
+  .wtw-box li, .wti-box li{ font-size:13px; margin-bottom:5px; line-height:1.4; }
+  .mini-score-row{ display:flex; gap:18px; flex-wrap:wrap; margin:14px 0; }
+  .mini-score{ min-width:110px; }
+  .mini-score .mini-score-label{ font-size:10.5px; color:var(--ink-soft); margin-bottom:3px; }
+  .mini-score .mini-score-num{ font-family:'Fraunces', serif; font-size:22px; font-weight:600; }
+  .loading-spinner{ display:inline-block; width:13px; height:13px; border:2px solid var(--line); border-top-color:var(--stamp); border-radius:50%; animation:spin 0.7s linear infinite; vertical-align:middle; }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  .stamp-badge{ display:inline-block; flex:0 0 auto; font-family:'IBM Plex Mono', monospace; font-size:10px; font-weight:700; letter-spacing:0.06em; border:1.5px solid; border-radius:4px; padding:3px 7px; transform:rotate(-4deg); }
+  .stamp-badge.current{ animation:stampPulse 1.1s ease-in-out infinite; }
+  @keyframes stampPulse{ 0%,100%{ opacity:1; transform:rotate(-4deg) scale(1); } 50%{ opacity:0.55; transform:rotate(-4deg) scale(1.06); } }
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -515,6 +538,36 @@
     </div>
     <p class="mono" style="font-size:12.5px; color:var(--ink-soft); margin-bottom:24px;" data-i18n="upload_sub">Exhibit — matched against the job description before the panel convenes.</p>
 
+    <div class="card" style="padding:18px 20px; margin-bottom:22px; border-color:var(--stamp);">
+      <div class="section-label" style="margin-bottom:12px;" data-i18n="interview_setup_label">Interview Setup</div>
+      <div style="display:flex; gap:18px; flex-wrap:wrap;">
+        <div class="role-field field-block" style="max-width:100%; margin-bottom:0; flex:1; min-width:200px;">
+          <label data-i18n="company_label">Company style (optional)</label>
+          <select id="companySelect" onchange="setCompany(this.value)" style="width:100%; padding:10px 12px; border:1.5px solid var(--line); border-radius:6px; background:var(--paper-card); font-size:14px;">
+            <option value="general" data-i18n="company_general" selected>General (no company style)</option>
+            <option value="google">Google</option>
+            <option value="amazon">Amazon</option>
+            <option value="meta">Meta</option>
+            <option value="apple">Apple</option>
+            <option value="microsoft">Microsoft</option>
+            <option value="netflix">Netflix</option>
+          </select>
+        </div>
+        <div class="role-field field-block" id="domainFieldBlock" style="max-width:100%; margin-bottom:0; flex:1; min-width:200px;">
+          <label data-i18n="domain_label">Domain</label>
+          <select id="domainSelect" onchange="setDomain(this.value)" style="width:100%; padding:10px 12px; border:1.5px solid var(--line); border-radius:6px; background:var(--paper-card); font-size:14px;">
+            <option value="general" data-i18n="domain_general" selected>General</option>
+            <option value="backend" data-i18n="domain_backend">Backend Engineering</option>
+            <option value="frontend" data-i18n="domain_frontend">Frontend Engineering</option>
+            <option value="data_science" data-i18n="domain_data_science">Data Science</option>
+            <option value="data_analyst" data-i18n="domain_data_analyst">Data Analyst</option>
+            <option value="ml_engineer" data-i18n="domain_ml_engineer">AI/ML Engineer</option>
+          </select>
+        </div>
+      </div>
+      <p class="mono" style="font-size:11px; color:var(--ink-soft); margin-top:10px; margin-bottom:0;" data-i18n="company_style_note">Domain always shapes your questions. Add a company style on top for its specific interview flavor — still fully adaptive to your answers.</p>
+    </div>
+
     <div class="card" id="reuseResumeCard" style="display:none; margin-bottom:20px; padding:16px 20px;">
       <div style="display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap;">
         <div>
@@ -575,10 +628,6 @@
       <a href="#" onclick="useDifferentResumeInstead(); return false;" class="mono" style="font-size:12px; color:var(--ink-soft); text-decoration:underline;" data-i18n="upload_different_instead">Upload a different resume instead</a>
     </div>
     <div class="cta-row" id="beginRow" style="display:none;">
-      <div class="role-field field-block" style="max-width:100%">
-        <label data-i18n="role_label">Role you're interviewing for</label>
-        <input type="text" id="roleTitleInput" data-i18n-ph="role_placeholder" placeholder="e.g. Backend Engineer" style="width:100%; padding:10px 12px; border:1.5px solid var(--line); border-radius:6px; background:var(--paper-card); font-size:14px;">
-      </div>
       <div class="role-field field-block" style="max-width:100%">
         <label data-i18n="difficulty_label">Difficulty</label>
         <div id="difficultyPicker" style="display:flex; gap:8px;">
@@ -664,7 +713,12 @@
     <div class="section-label" data-i18n="transcript_label">Full Transcript</div>
     <div class="transcript" id="transcriptBox">—</div>
     <div class="section-label" id="coachingLabel" style="display:none;" data-i18n="coaching_label">Stronger Answers — Coaching</div>
-    <div id="coachingList"></div>
+    <div id="coachingTabWrap" style="display:none;">
+      <div style="display:flex; gap:14px; align-items:flex-start; flex-wrap:wrap;">
+        <div id="coachingTabList" style="display:flex; flex-direction:row; flex-wrap:wrap; gap:6px; min-width:64px;"></div>
+      </div>
+      <div id="coachingTabContent" style="margin-top:14px;"></div>
+    </div>
     <div class="cta-row"><button class="cta-btn" data-i18n="back_dashboard_btn" onclick="goTo('dashboard')">Back to Dashboard</button></div>
   </section>
 
@@ -835,6 +889,9 @@
       growth_needs_more:'One session so far — trend line appears after your next one',
       overview_title:"How You're Doing Overall", overview_loading:'Loading…',
       strengths_label:'Strengths', where_to_improve:'Where to improve', recommended_resources:'Recommended resources',
+      not_enough_signal:'Not enough signal yet — complete an interview with mic/camera on to see this.',
+      no_voice_signal:'No voice or camera signal was captured this session — nothing to chart.',
+      no_verdicts_recorded:'No verdicts recorded for this session.',
       session_history_title:'Session History', session_history_sub:'Click a session to review its full transcript and verdicts.',
       close_label:'Close', perf_by_evaluator:'Performance by Evaluator', perf_caption:'Delivery signal per panelist, from your voice and self-reported camera check.',
       transcript_label:'Transcript',
@@ -849,10 +906,16 @@
       jd_first_warning:'Paste the job description above first, then try again.', paste_empty_warning:'Paste your resume text first.',
       match_complete:'Match complete.',
       gap_analysis:'Gap Analysis', semantic_match:'Semantic JD match', matched_points:'Matched points', gaps_label:'Gaps',
+      interview_setup_label:'Interview Setup',
       upload_different_instead:'Upload a different resume instead',
       role_label:"Role you're interviewing for", role_placeholder:'e.g. Backend Engineer',
       difficulty_label:'Difficulty', diff_easy:'Easy', diff_moderate:'Moderate', diff_difficult:'Difficult',
       diff_medium:'Medium', diff_hard:'Hard', begin_interview:'Begin Interview',
+      company_label:'Company style (optional)', company_general:'General (no company style)',
+      domain_label:'Domain', domain_general:'General',
+      domain_backend:'Backend Engineering', domain_frontend:'Frontend Engineering',
+      domain_data_science:'Data Science', domain_data_analyst:'Data Analyst', domain_ml_engineer:'AI/ML Engineer',
+      company_style_note:"Domain always shapes your questions. Add a company style on top for its specific interview flavor — still fully adaptive to your answers.",
       interview_title:'The panel is listening', evaluator_01:'Evaluator 01', evaluator_02:'Evaluator 02', evaluator_03:'Evaluator 03',
       persona_hr:'HR', persona_tech:'Tech Lead', persona_hm:'Hiring Manager',
       loading_question:'Loading your first question…', tap_to_answer:'Tap to answer',
@@ -869,8 +932,10 @@
       integrity_note_prefix:'⚠ During this session:', integrity_tab_times:'left the tab {n} time(s)', integrity_paste_times:'attempted to paste an answer {n} time(s)',
       strong_hire:'Strong Hire', lean_hire:'Lean Hire', discuss_hire:'Discuss',
       quote_verified:'Quote verified', quote_unverified:'Quote unverified',
-      you_said:'You said:', stronger_version:'Stronger version:', score_label:'Score', star_label:'STAR detected',
-      s_detected:'S detected', t_detected:'T detected', a_detected:'A detected', r_detected:'R detected',
+      you_said:'You said:', stronger_version:'Sharper take:', score_label:'Score', star_label:'Answer anatomy',
+      s_detected:'Situation ✓', t_detected:'Task ✓', a_detected:'Action ✓', r_detected:'Result ✓',
+      what_went_well:'What went well', what_to_improve_label:'What to improve', missing_terminologies:'Missing Terminologies',
+      domain_knowledge_label:'Case Substance', communication_label:'Delivery',
       speaking_pace:'Speaking pace', filler_words:'Filler words (total)', pauses_avg:'Pauses (avg per answer)',
       eye_contact:'Eye contact (self-reported)', questions_answered:'question(s) answered', voice_delivery_read:'Voice & delivery read:',
       practice_title:'DSA Practice', practice_sub:'Pick a level and a language, write your answer, then submit for a score.',
@@ -878,6 +943,8 @@
       debug_mode_label:'Debug mode (step-through + hints, no score)', submit_code:'Submit', run_debug:'Run Debug', new_question:'New question →',
       score_out_of:'/ 100', hint_label:'Hint', reference_approach_label:'Reference approach',
       grading:'Grading your answer…', debugging:'Stepping through your code…',
+      loading_step_upload:'Filing your transcript into the case record…', loading_step_analyze:'Panel reviewing testimony…', loading_step_coaching:'Drafting the verdict & coaching notes…',
+      stamp_filed:'FILED', stamp_stamping:'STAMPING…', stamp_pending:'PENDING',
       footer_tagline:'An AI-powered resume and interview coach that shows the reasoning behind the verdict, not just a score.',
       footer_product:'Product', footer_upload_resume:'Upload Resume', footer_case_file:'Case File',
       footer_built_with:'Built with a panel, not a score.',
@@ -927,10 +994,16 @@
       jd_first_warning:'पहले ऊपर जॉब विवरण पेस्ट करें, फिर फिर से कोशिश करें।', paste_empty_warning:'पहले अपना रिज़्यूमे टेक्स्ट पेस्ट करें।',
       match_complete:'मैच पूरा हुआ।',
       gap_analysis:'कमी विश्लेषण', semantic_match:'सिमेंटिक JD मैच', matched_points:'मिलान बिंदु', gaps_label:'कमियाँ',
+      interview_setup_label:'इंटरव्यू सेटअप',
       upload_different_instead:'इसके बजाय दूसरा रिज़्यूमे अपलोड करें',
       role_label:'आप जिस पद के लिए इंटरव्यू दे रहे हैं', role_placeholder:'जैसे: बैकएंड इंजीनियर',
       difficulty_label:'कठिनाई स्तर', diff_easy:'आसान', diff_moderate:'सामान्य', diff_difficult:'कठिन',
       diff_medium:'मध्यम', diff_hard:'कठिन', begin_interview:'इंटरव्यू शुरू करें',
+      company_label:'कंपनी शैली (वैकल्पिक)', company_general:'सामान्य (कोई कंपनी शैली नहीं)',
+      domain_label:'क्षेत्र', domain_general:'सामान्य',
+      domain_backend:'बैकएंड इंजीनियरिंग', domain_frontend:'फ्रंटएंड इंजीनियरिंग',
+      domain_data_science:'डेटा साइंस', domain_data_analyst:'डेटा एनालिस्ट', domain_ml_engineer:'AI/ML इंजीनियर',
+      company_style_note:'क्षेत्र हमेशा आपके सवालों को आकार देता है। ऊपर से कंपनी शैली जोड़ने पर उसकी खास इंटरव्यू शैली भी जुड़ जाती है — फिर भी सब कुछ आपके जवाबों के अनुसार ढलता है।',
       interview_title:'पैनल सुन रहा है', evaluator_01:'मूल्यांकनकर्ता 01', evaluator_02:'मूल्यांकनकर्ता 02', evaluator_03:'मूल्यांकनकर्ता 03',
       persona_hr:'HR', persona_tech:'टेक लीड', persona_hm:'हायरिंग मैनेजर',
       loading_question:'आपका पहला सवाल लोड हो रहा है…', tap_to_answer:'जवाब देने के लिए टैप करें',
@@ -947,8 +1020,10 @@
       integrity_note_prefix:'⚠ इस सत्र के दौरान:', integrity_tab_times:'{n} बार टैब छोड़ा', integrity_paste_times:'{n} बार जवाब पेस्ट करने की कोशिश की',
       strong_hire:'स्ट्रॉन्ग हायर', lean_hire:'लीन हायर', discuss_hire:'चर्चा ज़रूरी',
       quote_verified:'उद्धरण सत्यापित', quote_unverified:'उद्धरण असत्यापित',
-      you_said:'आपने कहा:', stronger_version:'बेहतर संस्करण:', score_label:'स्कोर', star_label:'STAR पहचाना गया',
-      s_detected:'S मिला', t_detected:'T मिला', a_detected:'A मिला', r_detected:'R मिला',
+      you_said:'आपने कहा:', stronger_version:'बेहतर पैंतरा:', score_label:'स्कोर', star_label:'जवाब की बनावट',
+      s_detected:'परिस्थिति ✓', t_detected:'कार्य ✓', a_detected:'क्रिया ✓', r_detected:'परिणाम ✓',
+      what_went_well:'क्या अच्छा रहा', what_to_improve_label:'क्या सुधारें', missing_terminologies:'छूटी हुई शब्दावली',
+      domain_knowledge_label:'विषय की गहराई', communication_label:'प्रस्तुति',
       speaking_pace:'बोलने की गति', filler_words:'भराव शब्द (कुल)', pauses_avg:'ठहराव (प्रति उत्तर औसत)',
       eye_contact:'आई कॉन्टैक्ट (स्व-रिपोर्टेड)', questions_answered:'सवाल(ों) का जवाब दिया', voice_delivery_read:'आवाज़ और प्रस्तुति का आकलन:',
       practice_title:'DSA अभ्यास', practice_sub:'स्तर और भाषा चुनें, अपना जवाब लिखें, फिर स्कोर के लिए जमा करें।',
@@ -956,6 +1031,8 @@
       debug_mode_label:'डिबग मोड (चरण-दर-चरण + संकेत, कोई स्कोर नहीं)', submit_code:'जमा करें', run_debug:'डिबग चलाएं', new_question:'नया सवाल →',
       score_out_of:'/ 100', hint_label:'संकेत', reference_approach_label:'संदर्भ तरीका',
       grading:'आपके जवाब की जांच हो रही है…', debugging:'आपका कोड चरण-दर-चरण देखा जा रहा है…',
+      loading_step_upload:'आपकी ट्रांसक्रिप्ट केस रिकॉर्ड में दर्ज हो रही है…', loading_step_analyze:'पैनल गवाही की समीक्षा कर रहा है…', loading_step_coaching:'फैसला और कोचिंग नोट्स तैयार हो रहे हैं…',
+      stamp_filed:'दर्ज', stamp_stamping:'मुहर लग रही है…', stamp_pending:'लंबित',
       footer_tagline:'एक AI-संचालित रिज़्यूमे और इंटरव्यू कोच जो सिर्फ़ स्कोर नहीं, फ़ैसले के पीछे की वजह दिखाता है।',
       footer_product:'उत्पाद', footer_upload_resume:'रिज़्यूमे अपलोड करें', footer_case_file:'केस फ़ाइल',
       footer_built_with:'स्कोर नहीं, पैनल के साथ बनाया गया।',
@@ -1005,10 +1082,16 @@
       jd_first_warning:'ಮೊದಲು ಮೇಲೆ ಉದ್ಯೋಗ ವಿವರಣೆ ಅಂಟಿಸಿ, ನಂತರ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.', paste_empty_warning:'ಮೊದಲು ನಿಮ್ಮ ರೆಸ್ಯೂಮ್ ಪಠ್ಯ ಅಂಟಿಸಿ.',
       match_complete:'ಮ್ಯಾಚ್ ಪೂರ್ಣಗೊಂಡಿದೆ.',
       gap_analysis:'ಕೊರತೆ ವಿಶ್ಲೇಷಣೆ', semantic_match:'ಸೆಮ್ಯಾಂಟಿಕ್ JD ಮ್ಯಾಚ್', matched_points:'ಹೊಂದಾಣಿಕೆಯ ಅಂಶಗಳು', gaps_label:'ಕೊರತೆಗಳು',
+      interview_setup_label:'ಸಂದರ್ಶನ ಸೆಟಪ್',
       upload_different_instead:'ಬದಲಿಗೆ ಬೇರೆ ರೆಸ್ಯೂಮ್ ಅಪ್‌ಲೋಡ್ ಮಾಡಿ',
       role_label:'ನೀವು ಸಂದರ್ಶನ ನೀಡುತ್ತಿರುವ ಹುದ್ದೆ', role_placeholder:'ಉದಾ: ಬ್ಯಾಕೆಂಡ್ ಎಂಜಿನಿಯರ್',
       difficulty_label:'ಕಠಿಣತೆ', diff_easy:'ಸುಲಭ', diff_moderate:'ಸಾಧಾರಣ', diff_difficult:'ಕಠಿಣ',
       diff_medium:'ಮಧ್ಯಮ', diff_hard:'ಕಠಿಣ', begin_interview:'ಸಂದರ್ಶನ ಪ್ರಾರಂಭಿಸಿ',
+      company_label:'ಕಂಪನಿ ಶೈಲಿ (ಐಚ್ಛಿಕ)', company_general:'ಸಾಮಾನ್ಯ (ಯಾವುದೇ ಕಂಪನಿ ಶೈಲಿ ಇಲ್ಲ)',
+      domain_label:'ಡೊಮೇನ್', domain_general:'ಸಾಮಾನ್ಯ',
+      domain_backend:'ಬ್ಯಾಕೆಂಡ್ ಎಂಜಿನಿಯರಿಂಗ್', domain_frontend:'ಫ್ರಂಟೆಂಡ್ ಎಂಜಿನಿಯರಿಂಗ್',
+      domain_data_science:'ಡೇಟಾ ಸೈನ್ಸ್', domain_data_analyst:'ಡೇಟಾ ಅನಾಲಿಸ್ಟ್', domain_ml_engineer:'AI/ML ಎಂಜಿನಿಯರ್',
+      company_style_note:'ಡೊಮೇನ್ ಯಾವಾಗಲೂ ನಿಮ್ಮ ಪ್ರಶ್ನೆಗಳನ್ನು ರೂಪಿಸುತ್ತದೆ. ಜೊತೆಗೆ ಕಂಪನಿ ಶೈಲಿಯನ್ನು ಆಯ್ಕೆಮಾಡಿದರೆ ಆ ಕಂಪನಿಯ ನಿರ್ದಿಷ್ಟ ಸಂದರ್ಶನ ಶೈಲಿಯೂ ಸೇರುತ್ತದೆ — ಇನ್ನೂ ನಿಮ್ಮ ಉತ್ತರಗಳಿಗೆ ಸಂಪೂರ್ಣ ಹೊಂದಿಕೊಳ್ಳುತ್ತದೆ.',
       interview_title:'ಪ್ಯಾನಲ್ ಕೇಳುತ್ತಿದೆ', evaluator_01:'ಮೌಲ್ಯಮಾಪಕ 01', evaluator_02:'ಮೌಲ್ಯಮಾಪಕ 02', evaluator_03:'ಮೌಲ್ಯಮಾಪಕ 03',
       persona_hr:'HR', persona_tech:'ಟೆಕ್ ಲೀಡ್', persona_hm:'ಹೈರಿಂಗ್ ಮ್ಯಾನೇಜರ್',
       loading_question:'ನಿಮ್ಮ ಮೊದಲ ಪ್ರಶ್ನೆ ಲೋಡ್ ಆಗುತ್ತಿದೆ…', tap_to_answer:'ಉತ್ತರಿಸಲು ಟ್ಯಾಪ್ ಮಾಡಿ',
@@ -1025,8 +1108,10 @@
       integrity_note_prefix:'⚠ ಈ ಸೆಷನ್‌ನಲ್ಲಿ:', integrity_tab_times:'{n} ಬಾರಿ ಟ್ಯಾಬ್ ಬಿಟ್ಟುಹೋಗಿದ್ದೀರಿ', integrity_paste_times:'{n} ಬಾರಿ ಉತ್ತರ ಪೇಸ್ಟ್ ಮಾಡಲು ಪ್ರಯತ್ನಿಸಿದ್ದೀರಿ',
       strong_hire:'ಸ್ಟ್ರಾಂಗ್ ಹೈರ್', lean_hire:'ಲೀನ್ ಹೈರ್', discuss_hire:'ಚರ್ಚೆ ಅಗತ್ಯ',
       quote_verified:'ಉಲ್ಲೇಖ ಪರಿಶೀಲಿಸಲಾಗಿದೆ', quote_unverified:'ಉಲ್ಲೇಖ ಪರಿಶೀಲಿಸಿಲ್ಲ',
-      you_said:'ನೀವು ಹೇಳಿದ್ದು:', stronger_version:'ಬಲಿಷ್ಠ ಆವೃತ್ತಿ:', score_label:'ಸ್ಕೋರ್', star_label:'STAR ಪತ್ತೆಯಾಗಿದೆ',
-      s_detected:'S ಪತ್ತೆ', t_detected:'T ಪತ್ತೆ', a_detected:'A ಪತ್ತೆ', r_detected:'R ಪತ್ತೆ',
+      you_said:'ನೀವು ಹೇಳಿದ್ದು:', stronger_version:'ಉತ್ತಮ ತಂತ್ರ:', score_label:'ಸ್ಕೋರ್', star_label:'ಉತ್ತರದ ರಚನೆ',
+      s_detected:'ಸನ್ನಿವೇಶ ✓', t_detected:'ಕಾರ್ಯ ✓', a_detected:'ಕ್ರಿಯೆ ✓', r_detected:'ಫಲಿತಾಂಶ ✓',
+      what_went_well:'ಏನು ಚೆನ್ನಾಗಿ ನಡೆಯಿತು', what_to_improve_label:'ಏನನ್ನು ಸುಧಾರಿಸಬೇಕು', missing_terminologies:'ಕಾಣೆಯಾದ ಪರಿಭಾಷೆ',
+      domain_knowledge_label:'ವಿಷಯದ ಆಳ', communication_label:'ಪ್ರಸ್ತುತಿ',
       speaking_pace:'ಮಾತನಾಡುವ ವೇಗ', filler_words:'ಭರ್ತಿ ಪದಗಳು (ಒಟ್ಟು)', pauses_avg:'ವಿರಾಮಗಳು (ಪ್ರತಿ ಉತ್ತರಕ್ಕೆ ಸರಾಸರಿ)',
       eye_contact:'ಕಣ್ಣಿನ ಸಂಪರ್ಕ (ಸ್ವಯಂ-ವರದಿ)', questions_answered:'ಪ್ರಶ್ನೆ(ಗಳಿ)ಗೆ ಉತ್ತರಿಸಲಾಗಿದೆ', voice_delivery_read:'ಧ್ವನಿ ಮತ್ತು ಪ್ರಸ್ತುತಿ ಓದುವಿಕೆ:',
       practice_title:'DSA ಅಭ್ಯಾಸ', practice_sub:'ಮಟ್ಟ ಮತ್ತು ಭಾಷೆ ಆಯ್ಕೆಮಾಡಿ, ನಿಮ್ಮ ಉತ್ತರ ಬರೆಯಿರಿ, ನಂತರ ಸ್ಕೋರ್‌ಗಾಗಿ ಸಲ್ಲಿಸಿ.',
@@ -1034,6 +1119,8 @@
       debug_mode_label:'ಡೀಬಗ್ ಮೋಡ್ (ಹಂತ-ಹಂತದ ವಿವರಣೆ + ಸುಳಿವುಗಳು, ಸ್ಕೋರ್ ಇಲ್ಲ)', submit_code:'ಸಲ್ಲಿಸಿ', run_debug:'ಡೀಬಗ್ ರನ್ ಮಾಡಿ', new_question:'ಹೊಸ ಪ್ರಶ್ನೆ →',
       score_out_of:'/ 100', hint_label:'ಸುಳಿವು', reference_approach_label:'ಆದರ್ಶ ವಿಧಾನ',
       grading:'ನಿಮ್ಮ ಉತ್ತರವನ್ನು ಪರಿಶೀಲಿಸಲಾಗುತ್ತಿದೆ…', debugging:'ನಿಮ್ಮ ಕೋಡ್ ಅನ್ನು ಹಂತ-ಹಂತವಾಗಿ ಪರಿಶೀಲಿಸಲಾಗುತ್ತಿದೆ…',
+      loading_step_upload:'ನಿಮ್ಮ ಪ್ರತಿಲಿಪಿಯನ್ನು ಕೇಸ್ ದಾಖಲೆಗೆ ಸೇರಿಸಲಾಗುತ್ತಿದೆ…', loading_step_analyze:'ಪ್ಯಾನಲ್ ಸಾಕ್ಷ್ಯವನ್ನು ಪರಿಶೀಲಿಸುತ್ತಿದೆ…', loading_step_coaching:'ತೀರ್ಪು ಮತ್ತು ಕೋಚಿಂಗ್ ಟಿಪ್ಪಣಿಗಳನ್ನು ಸಿದ್ಧಪಡಿಸಲಾಗುತ್ತಿದೆ…',
+      stamp_filed:'ದಾಖಲಾಗಿದೆ', stamp_stamping:'ಮುದ್ರೆ ಒತ್ತಲಾಗುತ್ತಿದೆ…', stamp_pending:'ಬಾಕಿ',
       footer_tagline:'ಸ್ಕೋರ್ ಮಾತ್ರವಲ್ಲ, ತೀರ್ಪಿನ ಹಿಂದಿನ ತರ್ಕವನ್ನು ತೋರಿಸುವ AI-ಚಾಲಿತ ರೆಸ್ಯೂಮ್ ಮತ್ತು ಸಂದರ್ಶನ ಕೋಚ್.',
       footer_product:'ಉತ್ಪನ್ನ', footer_upload_resume:'ರೆಸ್ಯೂಮ್ ಅಪ್‌ಲೋಡ್ ಮಾಡಿ', footer_case_file:'ಕೇಸ್ ಫೈಲ್',
       footer_built_with:'ಸ್ಕೋರ್ ಅಲ್ಲ, ಪ್ಯಾನಲ್‌ನೊಂದಿಗೆ ನಿರ್ಮಿಸಲಾಗಿದೆ.',
@@ -1095,6 +1182,7 @@
     dsaCurrentQuestionId:null, dsaSeenQuestionIds:[],
     pressureMode:false, pressureSeconds:60,
     dsaPressureMode:false, dsaPressureSeconds:300,
+    company:'general', domain:'general', coachingItems:[],
   };
 
   function authHeaders(extra){
@@ -1455,8 +1543,6 @@
     const RESOURCES = [
       {name:'LeetCode', url:'https://leetcode.com', note:'DSA practice by topic & difficulty'},
       {name:'NeetCode Roadmap', url:'https://neetcode.io/roadmap', note:'Structured DSA study order'},
-      {name:'Pramp', url:'https://www.pramp.com', note:'Free live mock interviews with peers'},
-      {name:'Big Interview', url:'https://biginterview.com', note:'STAR method & behavioral prep'},
       {name:'Glassdoor Interview Questions', url:'https://www.glassdoor.com/Interview/index.htm', note:'Real questions by company/role'},
     ];
     function resourceList(){
@@ -1471,7 +1557,7 @@
     panel.innerHTML = '<div class="card" style="padding:18px 20px;">'
       + list(t('strengths_label'), overview.strengths, 'var(--verify-deep)')
       + list(t('where_to_improve'), overview.improve, 'var(--rust)')
-      + (!overview.strengths.length && !overview.improve.length ? '<p class="mono" style="font-size:12px; color:var(--ink-soft);">Not enough signal yet — complete an interview with mic/camera on to see this.</p>' : '')
+      + (!overview.strengths.length && !overview.improve.length ? '<p class="mono" style="font-size:12px; color:var(--ink-soft);">' + escapeHtml(t('not_enough_signal')) + '</p>' : '')
       + resourceList()
       + '</div>';
   }
@@ -1530,7 +1616,7 @@
         return '<div class="card verdict-card '+cls+'"><div class="role">'+(labelMap[v.persona]||v.persona)+'</div>'
           + '<div class="stamp-word">'+(verdictLabelMap[v.verdict] || capWord(v.verdict))+'</div>'
           + '<p>'+escapeHtml(v.reasoning || '')+'</p></div>';
-      }).join('') || '<div class="empty-note">No verdicts recorded for this session.</div>';
+      }).join('') || '<div class="empty-note">' + escapeHtml(t('no_verdicts_recorded')) + '</div>';
       document.getElementById('sessionDetailTranscript').textContent = data.transcript || '(empty transcript)';
     } catch(e){
       document.getElementById('sessionDetailVerdicts').innerHTML = '<div class="empty-note">Could not load: '+escapeHtml(e.message)+'</div>';
@@ -1692,6 +1778,41 @@
     document.querySelectorAll('.diff-opt').forEach(b => b.classList.toggle('on', b.dataset.diff === level));
   }
 
+  function setCompany(company){
+    state.company = company;
+    // Domain is its own independent signal now — it drives question
+    // selection whether or not a company style is chosen (see
+    // _tech_question_pool in panel.py), so it always stays visible instead
+    // of being gated behind picking a company.
+  }
+
+  function setDomain(domain){
+    state.domain = domain;
+  }
+
+  // role_title used to be a free-text field the user typed by hand — it was
+  // redundant now that Company + Domain capture the same intent more
+  // reliably, so it's derived from those instead of asking twice. This still
+  // drives question-category selection server-side (see _tech_question_pool
+  // in panel.py) and is shown as the session title on the dashboard.
+  const DOMAIN_ROLE_TITLES = {
+    general: 'General Software Role',
+    backend: 'Backend Engineer',
+    frontend: 'Frontend Engineer',
+    data_science: 'Data Scientist',
+    data_analyst: 'Data Analyst',
+    ml_engineer: 'AI/ML Engineer',
+  };
+  function computeRoleTitle(){
+    let title = DOMAIN_ROLE_TITLES[state.domain] || DOMAIN_ROLE_TITLES.general;
+    if(state.company && state.company !== 'general'){
+      const opt = document.querySelector('#companySelect option[value="'+state.company+'"]');
+      const companyLabel = opt ? opt.textContent : state.company;
+      title = title + ' @ ' + companyLabel;
+    }
+    return title;
+  }
+
   function skipResumeUpload(){
     state.resumeAnalysisId = null;
     document.getElementById('beginRow').style.display = 'block';
@@ -1699,14 +1820,14 @@
   }
 
   async function startInterview(){
-    const roleTitle = document.getElementById('roleTitleInput').value.trim() || 'Untitled Role';
+    const roleTitle = computeRoleTitle();
     state.answeredCount = 0;
     state.contextSwitches = 0;
     state.pasteAttempts = 0;
     goTo('interview', {skipEntry:true});
     document.getElementById('questionText').textContent = 'Contacting the panel…';
     try {
-      const data = await api('/interview/start', { method:'POST', body: { role_title: roleTitle, resume_analysis_id: state.resumeAnalysisId || null, difficulty: state.difficulty || 'moderate', language: state.language || 'en' } });
+      const data = await api('/interview/start', { method:'POST', body: { role_title: roleTitle, resume_analysis_id: state.resumeAnalysisId || null, difficulty: state.difficulty || 'moderate', language: state.language || 'en', company: state.company || 'general', domain: state.domain || 'general' } });
       applyQuestion(data);
     } catch(e){
       const msg = e.message === 'Failed to fetch'
@@ -1739,6 +1860,11 @@
     if(micBtn) micBtn.style.display = '';
     document.getElementById('micStatus').textContent = t('tap_to_answer');
     if(state.pressureMode) startInterviewTimer(); else clearInterviewTimer();
+    // Pressure mode's whole point is racing the clock — losing seconds every
+    // question to "tap the mic first" defeated that. The mic now starts
+    // listening on its own the instant a pressure-mode question loads;
+    // outside pressure mode the tap-to-start behavior is unchanged.
+    if(state.pressureMode) startListening();
     lockLanguageSwitch(true);
   }
 
@@ -1776,6 +1902,14 @@
 
   async function toggleMic(){
     if(!listening){
+      await startListening();
+    } else {
+      stopListening();
+    }
+  }
+
+  async function startListening(){
+    if(listening) return;
       recognizer = getRecognizer();
       if(!recognizer){
         // No browser speech recognition available — fall back to a typed answer.
@@ -1841,9 +1975,6 @@
         // we just won't get pace/filler/pause numbers for this answer.
         mediaRecorder = null;
       }
-    } else {
-      stopListening();
-    }
   }
 
   function stopListening(){
@@ -1948,6 +2079,38 @@
     }
   }
 
+  // ===================================================================
+  // Multi-step "the panel is working" loader for the deliberation wait —
+  // an honest sequential feel instead of one static line. The steps are
+  // cosmetic pacing (the real API call is a single request under the
+  // hood), not a literal progress tracker, but they reflect the true
+  // stages that request goes through (transcript handoff, panel review,
+  // then verdict + coaching assembly). Styled as case-file stamps (FILED /
+  // STAMPING / PENDING) to match this app's own dossier aesthetic, rather
+  // than a generic checkmark-spinner-circle checklist.
+  // ===================================================================
+  function startDeliberationLoadingSequence(){
+    const steps = [t('loading_step_upload'), t('loading_step_analyze'), t('loading_step_coaching')];
+    let idx = 0;
+    const el = document.getElementById('questionText');
+    function render(){
+      el.innerHTML = '<div style="max-width:400px; margin:0 auto;">' + steps.map((s,i) => {
+        const done = i < idx, current = i === idx;
+        const label = done ? t('stamp_filed') : (current ? t('stamp_stamping') : t('stamp_pending'));
+        const colorVar = done ? 'var(--verify-deep)' : (current ? 'var(--stamp)' : 'var(--line)');
+        const badgeClass = 'stamp-badge' + (current ? ' current' : '');
+        return '<div style="display:flex; align-items:center; gap:12px; margin:10px 0; text-align:left;">'
+          + '<span class="'+badgeClass+'" style="border-color:'+colorVar+'; color:'+colorVar+'; opacity:'+(done||current?1:0.6)+';">'+label+'</span>'
+          + '<span style="font-size:14px; opacity:'+(i<=idx?1:0.55)+';">' + s + '</span></div>';
+      }).join('') + '</div>';
+    }
+    render();
+    const interval = setInterval(() => {
+      if(idx < steps.length - 1){ idx++; render(); }
+    }, 1400);
+    return function stop(){ clearInterval(interval); };
+  }
+
   async function endInterview(){
     clearInterviewTimer();
     lockLanguageSwitch(false);
@@ -1982,10 +2145,11 @@
       await submitTypedAnswer();
     }
     document.getElementById('qLabel').textContent = t('panel_colon');
-    document.getElementById('questionText').textContent = t('deliberating');
+    const stopLoadingSequence = startDeliberationLoadingSequence();
     state.awaitingVerdict = true;
     try {
       const data = await api(`/interview/${state.currentSessionId}/deliberate`, { method:'POST' });
+      stopLoadingSequence();
       renderResults(data);
       // Fetch per-persona delivery metrics (voice pace, fillers, pauses, eye
       // contact) separately — deliberate() only returns verdicts/coaching,
@@ -2000,6 +2164,7 @@
       state.awaitingVerdict = false;
       goTo('results');
     } catch(e){
+      stopLoadingSequence();
       // Never leave the user stuck on "deliberating" forever — show a
       // recoverable message with a retry, instead of a possibly-missed alert().
       // currentSessionId stays set (Retry needs it), but awaitingVerdict
@@ -2051,32 +2216,78 @@
     }
 
     const coachingLabel = document.getElementById('coachingLabel');
-    const coachingList = document.getElementById('coachingList');
+    const tabWrap = document.getElementById('coachingTabWrap');
+    const tabList = document.getElementById('coachingTabList');
     if(data.coaching && data.coaching.length){
       coachingLabel.style.display = 'block';
-      coachingList.innerHTML = data.coaching.map(c => {
-        const star = c.star_detected || {s:false,t:false,a:false,r:false};
-        // Only render a chip for what was actually detected — a grey/faded
-        // chip for something NOT found adds noise without adding signal.
-        const chip = (flag, label) => flag ? '<span class="star-chip hit">'+label+'</span>' : '';
-        const anyStar = star.s || star.t || star.a || star.r;
-        const scoreVal = (typeof c.score === 'number') ? c.score : 0;
-        return '<div class="card" style="padding:18px 20px; margin-bottom:14px;">'
-        + '<div class="q-label" style="margin-bottom:8px;">'+escapeHtml(c.question)+'</div>'
-        + '<div style="font-size:13.5px; color:var(--ink-soft); margin-bottom:10px;"><strong style="color:var(--ink);">'+t('you_said')+'</strong> '+escapeHtml(c.your_answer)+'</div>'
-        + '<div style="font-size:13.5px; margin-bottom:8px;"><strong style="color:var(--verify-deep);">'+t('stronger_version')+'</strong> '+escapeHtml(c.stronger_answer)+'</div>'
-        + '<div style="font-size:12px; color:var(--ink-soft); font-style:italic; margin-bottom:10px;">'+escapeHtml(c.why_its_stronger)+'</div>'
-        + '<div class="mono" style="font-size:11.5px; color:var(--ink-soft);">'+t('score_label')+': <strong style="color:var(--ink);">'+scoreVal+'</strong> / 100</div>'
-        + (anyStar ? ('<div class="star-chip-row">'
-            + chip(star.s, t('s_detected')) + chip(star.t, t('t_detected'))
-            + chip(star.a, t('a_detected')) + chip(star.r, t('r_detected'))
-          + '</div>') : '')
-        + '</div>';
-      }).join('');
+      tabWrap.style.display = 'block';
+      state.coachingItems = data.coaching;
+      tabList.innerHTML = data.coaching.map((c,i) =>
+        '<button class="coaching-tab-btn' + (i===0?' active':'') + '" data-tab-i="' + i + '" onclick="showCoachingTab(' + i + ')">Q' + (i+1) + '</button>'
+      ).join('');
+      showCoachingTab(0);
     } else {
       coachingLabel.style.display = 'none';
-      coachingList.innerHTML = '';
+      tabWrap.style.display = 'none';
+      state.coachingItems = [];
     }
+  }
+
+  function showCoachingTab(i){
+    const items = state.coachingItems || [];
+    const c = items[i];
+    if(!c) return;
+    document.querySelectorAll('.coaching-tab-btn').forEach(b => b.classList.toggle('active', parseInt(b.dataset.tabI,10) === i));
+
+    const star = c.star_detected || {s:false,t:false,a:false,r:false};
+    const chip = (flag, label) => flag ? '<span class="star-chip hit">'+label+'</span>' : '';
+    const anyStar = star.s || star.t || star.a || star.r;
+    const scoreVal = (typeof c.score === 'number') ? c.score : 0;
+    const dkScore = (typeof c.domain_knowledge_score === 'number') ? c.domain_knowledge_score : null;
+    const commScore = (typeof c.communication_score === 'number') ? c.communication_score : null;
+
+    const wentWell = (c.what_went_well && c.what_went_well.length) ? c.what_went_well : [];
+    const toImprove = (c.what_to_improve && c.what_to_improve.length) ? c.what_to_improve : [];
+    const terms = (c.missing_terminologies && c.missing_terminologies.length) ? c.missing_terminologies : [];
+
+    let html = '<div class="card" style="padding:20px 22px;">';
+    html += '<div class="qa-quote-block"><div class="qa-q">' + escapeHtml(c.question) + '</div><div class="qa-a">' + escapeHtml(c.your_answer) + '</div></div>';
+
+    if(wentWell.length || toImprove.length){
+      html += '<div class="wtw-wti-grid">';
+      html += '<div class="wtw-box"><div class="box-head">✓ ' + escapeHtml(t('what_went_well')) + '</div><ul>'
+        + wentWell.map(x => '<li>'+escapeHtml(x)+'</li>').join('') + '</ul></div>';
+      html += '<div class="wti-box"><div class="box-head">ⓘ ' + escapeHtml(t('what_to_improve_label')) + '</div><ul>'
+        + toImprove.map(x => '<li>'+escapeHtml(x)+'</li>').join('') + '</ul></div>';
+      html += '</div>';
+    }
+
+    if(terms.length){
+      html += '<div style="margin:10px 0;"><div class="mono" style="font-size:11px; color:var(--ink-soft); margin-bottom:6px;">+ ' + escapeHtml(t('missing_terminologies')) + '</div>'
+        + '<div>' + terms.map(x => '<span class="term-chip" style="margin-right:6px;">'+escapeHtml(x)+'</span>').join('') + '</div></div>';
+    }
+
+    html += '<div style="font-size:13.5px; margin:12px 0 4px;"><strong style="color:var(--verify-deep);">' + t('stronger_version') + '</strong> ' + escapeHtml(c.stronger_answer) + '</div>';
+    html += '<div style="font-size:12px; color:var(--ink-soft); font-style:italic; margin-bottom:10px;">' + escapeHtml(c.why_its_stronger) + '</div>';
+
+    html += '<div class="mini-score-row">';
+    html += '<div class="mini-score"><div class="mini-score-label">' + escapeHtml(t('score_label')) + '</div><div class="mini-score-num">' + scoreVal + '<span style="font-size:12px; color:var(--ink-soft);">/100</span></div></div>';
+    if(dkScore !== null){
+      html += '<div class="mini-score"><div class="mini-score-label">' + escapeHtml(t('domain_knowledge_label')) + '</div><div class="mini-score-num">' + dkScore + '<span style="font-size:12px; color:var(--ink-soft);">/100</span></div></div>';
+    }
+    if(commScore !== null){
+      html += '<div class="mini-score"><div class="mini-score-label">' + escapeHtml(t('communication_label')) + '</div><div class="mini-score-num">' + commScore + '<span style="font-size:12px; color:var(--ink-soft);">/100</span></div></div>';
+    }
+    html += '</div>';
+
+    if(anyStar){
+      html += '<div class="star-chip-row">'
+        + chip(star.s, t('s_detected')) + chip(star.t, t('t_detected'))
+        + chip(star.a, t('a_detected')) + chip(star.r, t('r_detected'))
+        + '</div>';
+    }
+    html += '</div>';
+    document.getElementById('coachingTabContent').innerHTML = html;
   }
 
   // Simple CSS-bar chart — one card per evaluator, one bar per delivery
@@ -2091,7 +2302,7 @@
     const keys = order.filter(k => sections[k]);
 
     if(!keys.length){
-      panel.innerHTML = '<p class="mono" style="font-size:12px; color:var(--ink-soft);">No voice or camera signal was captured this session — nothing to chart.</p>';
+      panel.innerHTML = '<p class="mono" style="font-size:12px; color:var(--ink-soft);">' + escapeHtml(t('no_voice_signal')) + '</p>';
       return;
     }
 
@@ -2399,19 +2610,31 @@
     });
     if(data.coaching && data.coaching.length){
       body += '<h2>' + escapeHtml(t('coaching_label')) + '</h2>';
-      data.coaching.forEach(c => {
+      data.coaching.forEach((c,i) => {
         const star = c.star_detected || {s:false,t:false,a:false,r:false};
-        body += '<div class="card"><div style="font-weight:600; margin-bottom:6px;">' + escapeHtml(c.question) + '</div>'
-          + '<p><strong>' + escapeHtml(t('you_said')) + '</strong> ' + escapeHtml(c.your_answer) + '</p>'
-          + '<p><strong>' + escapeHtml(t('stronger_version')) + '</strong> ' + escapeHtml(c.stronger_answer) + '</p>'
+        const wentWell = c.what_went_well || [];
+        const toImprove = c.what_to_improve || [];
+        const terms = c.missing_terminologies || [];
+        body += '<div class="card"><div style="font-weight:600; margin-bottom:6px;">Q' + (i+1) + '. ' + escapeHtml(c.question) + '</div>'
+          + '<p><strong>' + escapeHtml(t('you_said')) + '</strong> ' + escapeHtml(c.your_answer) + '</p>';
+        if(wentWell.length) body += '<p><strong>' + escapeHtml(t('what_went_well')) + ':</strong></p><ul>' + wentWell.map(x=>'<li>'+escapeHtml(x)+'</li>').join('') + '</ul>';
+        if(toImprove.length) body += '<p><strong>' + escapeHtml(t('what_to_improve_label')) + ':</strong></p><ul>' + toImprove.map(x=>'<li>'+escapeHtml(x)+'</li>').join('') + '</ul>';
+        if(terms.length) body += '<p><strong>' + escapeHtml(t('missing_terminologies')) + ':</strong> ' + terms.map(x=>'<span class="chip">'+escapeHtml(x)+'</span>').join(' ') + '</p>';
+        body += '<p><strong>' + escapeHtml(t('stronger_version')) + '</strong> ' + escapeHtml(c.stronger_answer) + '</p>'
           + '<p><em>' + escapeHtml(c.why_its_stronger) + '</em></p>'
-          + '<div class="meta">' + escapeHtml(t('score_label')) + ': ' + (c.score || 0) + ' / 100</div>'
-          + '<div>'
-          + '<span class="chip' + (star.s?' hit':'') + '">' + escapeHtml(t('s_detected')) + '</span>'
-          + '<span class="chip' + (star.t?' hit':'') + '">' + escapeHtml(t('t_detected')) + '</span>'
-          + '<span class="chip' + (star.a?' hit':'') + '">' + escapeHtml(t('a_detected')) + '</span>'
-          + '<span class="chip' + (star.r?' hit':'') + '">' + escapeHtml(t('r_detected')) + '</span>'
-          + '</div></div>';
+          + '<div class="meta">' + escapeHtml(t('score_label')) + ': ' + (c.score || 0) + ' / 100'
+          + (typeof c.domain_knowledge_score === 'number' ? ' &nbsp;·&nbsp; ' + escapeHtml(t('domain_knowledge_label')) + ': ' + c.domain_knowledge_score + ' / 100' : '')
+          + (typeof c.communication_score === 'number' ? ' &nbsp;·&nbsp; ' + escapeHtml(t('communication_label')) + ': ' + c.communication_score + ' / 100' : '')
+          + '</div>'
+        if(star.s || star.t || star.a || star.r){
+          body += '<div>'
+            + (star.s ? '<span class="chip hit">' + escapeHtml(t('s_detected')) + '</span>' : '')
+            + (star.t ? '<span class="chip hit">' + escapeHtml(t('t_detected')) + '</span>' : '')
+            + (star.a ? '<span class="chip hit">' + escapeHtml(t('a_detected')) + '</span>' : '')
+            + (star.r ? '<span class="chip hit">' + escapeHtml(t('r_detected')) + '</span>' : '')
+            + '</div>';
+        }
+        body += '</div>';
       });
     }
     body += '<h2>' + escapeHtml(t('transcript_label')) + '</h2><div class="card" style="white-space:pre-wrap; font-family:monospace; font-size:13px;">'

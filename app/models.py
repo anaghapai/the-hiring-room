@@ -40,6 +40,8 @@ class InterviewSession(SQLModel, table=True):
     # silently dropped because this table/schema never declared them.
     difficulty: str = "moderate"
     language: str = "en"
+    company: str = "general"
+    domain: str = "general"
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
@@ -121,6 +123,8 @@ class StartInterviewRequest(BaseModel):
     # so FastAPI silently dropped them before they ever reached panel.py.
     difficulty: str = "moderate"      # easy | moderate | difficult
     language: str = "en"              # en | hi | kn
+    company: str = "general"          # general | google | amazon | meta | apple | microsoft | netflix
+    domain: str = "general"           # general | backend | frontend | data_science | data_analyst | ml_engineer
 
 
 class NextQuestionResponse(BaseModel):
@@ -180,6 +184,17 @@ class CoachingItem(BaseModel):
     # all-false and score completeness/correctness instead.
     score: int = 0
     star_detected: StarDetected = StarDetected()
+    # NEW (round 7): structured what-went-well / what-to-improve bullets,
+    # missing key terms the answer should have used, a domain-knowledge score
+    # judged by the model, and a communication score computed server-side
+    # from REAL captured voice signal (filler words, pace) for that turn —
+    # not guessed by the LLM. communication_score is None when the answer was
+    # typed rather than spoken (no voice signal exists to compute from).
+    what_went_well: List[str] = []
+    what_to_improve: List[str] = []
+    missing_terminologies: List[str] = []
+    domain_knowledge_score: int = 0
+    communication_score: Optional[int] = None
 
 
 class DeliberationResponse(BaseModel):
